@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0,user-scalable=no">
+  <title>云剪切板 - Breeze</title>
+  <link rel="stylesheet" href="./style/basic.css?v=1.2.0">
+  <link rel="stylesheet" href="./style/common.css?v=1.2.0">
+  <link rel="stylesheet" href="./style/pcstyle.css?v=1.2.0">
+  <link rel="stylesheet" href="./style/pannlstyle.css?v=1.2.0">
+  <link rel="stylesheet" href="./style/phonestyle.css?v=1.2.0">
+  <link rel="stylesheet" href="./style/clipboard.css?v=1.2.0">
+</head>
+<body>
+  <main class="clipboard-page">
+    <div class="clipboard-box blur">
+      <div class="header">
+        <h2>📋 云剪切板</h2>
+        <a href="javascript:window.close();" class="back-btn">关闭页面</a>
+      </div>
+
+      <div class="input-section">
+        <textarea id="clip-input" placeholder="在此粘贴或输入内容..." rows="5"></textarea>
+        <div class="input-actions">
+          <button id="paste-btn" class="action-btn paste-btn">📋 从剪切板粘贴</button>
+          <button id="save-btn" class="action-btn save-btn">💾 保存到云端</button>
+        </div>
+        <p id="save-status" class="status-msg"></p>
+      </div>
+
+      <div class="list-section">
+        <h3>☁️ 云端内容列表</h3>
+        <ul id="clip-list">
+          <li>加载中...</li>
+        </ul>
+      </div>
+    </div>
+  </main>
+
+  <script src="./js/clipboard.js?v=1.2.0" type="module"></script>
+</body>
+</html>

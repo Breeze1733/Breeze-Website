@@ -1,0 +1,47 @@
+/* 平板端样式文件 */
+@media screen and (min-width: 700px) and (max-width:1000px) {
+
+  /* 右侧栏目出现 */
+  main section {
+    padding: 50px;
+  }
+
+  main section:last-child {
+    display: flex;
+  }
+
+  /* 链接小提示 */
+  .tip {
+    display: block;
+  }
+
+  .social:hover {
+    cursor: pointer;
+    border-radius: 6px;
+    backdrop-filter: blur(10px);
+    background-color: #00000040;
+  }
+
+  /* 音乐时间 */
+  .music {
+    display: none;
+    width: 0;
+  }
+
+  .top .timer,
+  .top .music {
+    width: 100%;
+    min-width: 360px;
+    max-width: 660px;
+  }
+
+  /* 作品列表文字隐藏 */
+  .netlink ul li span {
+    display: none;
+  }
+
+  /* 菜单隐藏 */
+  .menu {
+    display: none;
+  }
+}

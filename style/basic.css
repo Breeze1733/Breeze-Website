@@ -1,0 +1,68 @@
+/* 指定要下载的字体文件 */
+@font-face {
+  font-family: "edo";
+  src: url(../fonts/Action_Man_Bold.ttf);
+}
+
+@font-face {
+  font-family: "shoujin";
+  src: url(../fonts/CN-shoujin.TTF);
+}
+
+@font-face {
+  font-family: "led";
+  src: url(../fonts/LED.otf);
+}
+
+@font-face {
+  font-family: "number";
+  src: url(../fonts/number.ttf);
+}
+
+@font-face {
+  font-family: "harmonyos";
+  src: url(../fonts/CN-shoujin.TTF);
+}
+
+@font-face {
+  font-family: 'icomoon';
+  src: url('../iconfonts/icomoon.eot?f5lna0');
+  src: url('../iconfonts/icomoon.eot?f5lna0#iefix') format('embedded-opentype'),
+    url('../iconfonts/icomoon.ttf?f5lna0') format('truetype'),
+    url('../iconfonts/icomoon.woff?f5lna0') format('woff'),
+    url('../iconfonts/icomoon.svg?f5lna0#icomoon') format('svg');
+  font-weight: normal;
+  font-style: normal;
+  font-display: block;
+}
+
+/* 基本样式 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: content-box;
+}
+
+ul,
+li {
+  list-style-type: none;
+}
+
+/* :root 这个 CSS 伪类匹配文档树的根元素,在此自定义一些全局样式属性 */
+:root {
+  --background-color: #eeeeee;
+  --main-font-color: #000000;
+  --link-color: #ae8aff;
+  --font-white: #ffffff;
+  --font-dark: #000000;
+  --font-size: 16px;
+}
+
+a {
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.hidden {
+  display: none;
+}

@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0,user-scalable=no">
+  <meta name="keywords" content="Breeze, Blog, 博客">
+  <meta name="description" content="Xiao He 的个人博客记录">
+  <meta name="author" content="Breeze">
+  <link rel="stylesheet" href="./style/basic.css?v=1.2.0">
+  <link rel="stylesheet" href="./style/common.css?v=1.2.0">
+  <link rel="stylesheet" href="./style/pcstyle.css?v=1.2.0">
+  <link rel="stylesheet" href="./style/blog.css?v=1.2.0">
+  <title>我的博客 - Breeze</title>
+  
+  <style>
+    /* 针对博客页面的排版补充了一些基础样式，你可以后续合并到 common.css 中 */
+    .blog-wrapper {
+      width: 100%;
+      max-width: 800px; /* 限制阅读区的最大宽度，提升纯文本的阅读体验 */
+      margin: 20px auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    
+    .blog-nav {
+      padding: 15px 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .blog-nav a {
+      color: inherit;
+      text-decoration: none;
+      font-weight: bold;
+      transition: opacity 0.3s;
+    }
+
+    .blog-nav a:hover {
+      opacity: 0.7;
+    }
+
+    .blog-article {
+      padding: 40px;
+      text-align: left; /* 博客内容通常左对齐 */
+    }
+
+    .article-title {
+      font-size: 2em;
+      margin-bottom: 10px;
+    }
+
+    .article-meta {
+      font-size: 0.9em;
+      opacity: 0.7;
+      margin-bottom: 30px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding-bottom: 15px;
+    }
+
+    .article-content {
+      line-height: 1.8;
+      font-size: 1.1em;
+    }
+
+    .article-content p {
+      margin-bottom: 20px;
+      text-indent: 2em;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+  </header>
+  <main>
+    <section class="blog-wrapper">
+
+      <div class="blur message blog-article">
+        <div class="header">
+            <h2>碎碎念</h2>
+            <a href="javascript:window.close();" class="back-btn">关闭页面</a>
+        </div>
+        
+        <div class="article-meta">
+          <span>作者：Xiao He</span> &nbsp;|&nbsp; 
+          <span>更新日期：2026-04-09</span> &nbsp;|&nbsp;
+        </div>
+        
+        <div class="article-content">
+          <p>搬家是一个隐藏的创伤性事件，习惯的生活秩序被打碎，我有很强烈的一切不能长存的感觉。搬家中的丢弃是必须狠心，接受一切在你生命里的存在都有期限。<p>
+        </div>
+      </div>
+
+    </section>
+  </main>
+  <footer>
+    <small>欢迎光临我的博客</small>
+  </footer>
+  
+  <script src="./js/basic.js?v=1.2.0" type="module"></script>
+</body>
+
+</html>

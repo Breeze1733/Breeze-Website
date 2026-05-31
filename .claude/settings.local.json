@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3)",
+      "Bash(cat /etc/nginx/sites-enabled/* 2>/dev/null | grep -A5 \"breeze.qzz.io\" | head -30)",
+      "Read(//etc/nginx/sites-enabled/**)",
+      "Bash(systemctl list-units *)",
+      "Read(//etc/systemd/system/**)",
+      "Bash(pm2 list *)",
+      "Bash(pm2 start *)",
+      "Bash(curl -s http://localhost:3000/clips)",
+      "Bash(curl -s -X POST http://localhost:3000/clips -H \"Content-Type: application/json\" -d '{\"content\": \"测试云剪切板功能\"}')",
+      "Bash(curl -s -X DELETE http://localhost:3000/clips/mpth7a0voqe8)",
+      "Bash(pm2 restart *)",
+      "Bash(curl -s -X POST http://localhost:3000/clips -H \"Content-Type: application/json\" -d '{\"content\": \"测试内容\"}')",
+      "Bash(curl -s -X PUT http://localhost:3000/clips/mpthlkscl05y -H \"Content-Type: application/json\" -d '{\"content\": \"更新后的内容\"}')",
+      "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\" \"https://breeze.qzz.io/\")",
+      "Bash(curl -s \"https://breeze.qzz.io/\")"
+    ]
+  }
+}
