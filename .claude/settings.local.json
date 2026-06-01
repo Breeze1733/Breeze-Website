@@ -15,7 +15,8 @@
       "Bash(curl -s -X POST http://localhost:3000/clips -H \"Content-Type: application/json\" -d '{\"content\": \"测试内容\"}')",
       "Bash(curl -s -X PUT http://localhost:3000/clips/mpthlkscl05y -H \"Content-Type: application/json\" -d '{\"content\": \"更新后的内容\"}')",
       "Bash(curl -s -o /dev/null -w \"HTTP %{http_code}\" \"https://breeze.qzz.io/\")",
-      "Bash(curl -s \"https://breeze.qzz.io/\")"
+      "Bash(curl -s \"https://breeze.qzz.io/\")",
+      "Bash(git add *)"
     ]
   }
 }

@@ -1,0 +1,23 @@
+# 依赖
+backend/node_modules/
+
+# 运行时缓存/数据
+backend/clips/
+backend/uploads/
+
+# 旧版本
+old version/
+
+# 临时/个人文件
+fast.txt
+
+# IDE / 编辑器
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# 系统文件
+.DS_Store
+Thumbs.db
