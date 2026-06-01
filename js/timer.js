@@ -30,10 +30,7 @@ setInterval(() => {
   // 网站运行时间
   const processTime = Math.floor((Date.now() - netStatTime) / 1000);
   const netday = Math.floor(processTime / (60 * 60 * 24));
-  const nethour = Math.floor((processTime % (60 * 60 * 24)) / (60 * 60));
-  const netminute = Math.floor((processTime % (60 * 60)) / 60);
-  const netsecond = processTime % 60;
-  footer.children[0].textContent = `已运行 ${netday} 天 ${nethour} 小时 ${netminute} 分钟 ${netsecond} 秒`
+  footer.children[0].textContent = `已运行 ${netday} 天`
 }, 1000)
 
 // 获取用户地址api
