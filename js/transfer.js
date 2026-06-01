@@ -56,15 +56,24 @@ uploadBtn.addEventListener('click', () => {
     // 监听上传完成
     xhr.onload = function() {
         if (xhr.status === 200) {
-            uploadStatus.textContent = '✅ 上传成功！';
+            try {
+                const resp = JSON.parse(xhr.responseText);
+                uploadStatus.textContent = '✅ ' + (resp.message || '上传成功！');
+            } catch {
+                uploadStatus.textContent = '✅ 上传成功！';
+            }
             uploadStatus.style.color = '#51cf66';
             fileInput.value = '';
             fileNameDisplay.textContent = '未选择任何文件';
             fetchFileList(); // 刷新列表
-            // 2秒后自动隐藏进度条
             setTimeout(() => progressContainer.classList.add('hidden'), 2000);
         } else {
-            uploadStatus.textContent = '❌ 上传失败';
+            let msg = '❌ 上传失败';
+            try {
+                const err = JSON.parse(xhr.responseText);
+                if (err.error) msg = '❌ ' + err.error;
+            } catch {}
+            uploadStatus.textContent = msg;
             uploadStatus.style.color = '#ff6b6b';
         }
         uploadBtn.disabled = false;
@@ -91,17 +100,19 @@ async function fetchFileList() {
         const files = await response.json();
         fileListUl.innerHTML = ''; // 清空现有列表
         
-        if (files.length === 0) {
+        const visibleFiles = files.filter(file => file.name !== '.gitkeep');
+
+        if (visibleFiles.length === 0) {
             fileListUl.innerHTML = '<li style="justify-content: center; color: #aaa;">云端空空如也~</li>';
             return;
         }
 
-        files.forEach(file => {
+        visibleFiles.forEach(file => {
             const li = document.createElement('li');
             li.innerHTML = `
                 <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%;" title="${file.name}">📄 ${file.name}</span>
                 <div class="action-btns">
-                    <a href="${API_BASE}/download/${file.name}" download class="btn download-btn">下载</a>
+                    <a href="${API_BASE}/download/${encodeURIComponent(file.name)}" download class="btn download-btn">下载</a>
                     <button class="btn delete-btn" data-filename="${file.name}">删除</button>
                 </div>
             `;
@@ -147,5 +158,13 @@ async function deleteFile(filename) {
     }
 }
 
-// 页面加载完成后立即获取一次文件列表
-window.addEventListener('DOMContentLoaded', fetchFileList);
+// 页面加载完成后获取文件列表
+// 兼容 type="module" 脚本执行时机：如果 DOM 已就绪则直接执行，否则等待事件
+function init() {
+    fetchFileList();
+}
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+} else {
+    init();
+}

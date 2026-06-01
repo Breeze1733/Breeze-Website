@@ -11,9 +11,13 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
 const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir);
+// 确保上传目录存在（不仅启动时检查，每次操作前也会检查）
+function ensureUploadDir() {
+    if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+    }
 }
+ensureUploadDir();
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
@@ -40,19 +44,21 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 app.post('/upload', upload.single('file'), (req, res) => {
-    if (!req.file) return res.status(400).send('未选择文件');
-    res.send({ message: '上传成功', filename: req.file.filename });
+    if (!req.file) return res.status(400).json({ error: '未选择文件' });
+    res.json({ message: '上传成功', filename: req.file.filename });
 });
 
 app.get('/files', (req, res) => {
+    ensureUploadDir();
     fs.readdir(uploadDir, (err, files) => {
-        if (err) return res.status(500).send('读取目录失败');
+        if (err) return res.status(500).json({ error: '读取目录失败' });
         res.json(files.map(file => ({ name: file })));
     });
 });
 
 app.get('/download/:filename', (req, res) => {
     const file = path.join(uploadDir, req.params.filename);
+    if (!fs.existsSync(file)) return res.status(404).json({ error: '文件不存在' });
     res.download(file, (err) => {
         if (err) console.error("下载中断:", err);
     });
@@ -60,10 +66,10 @@ app.get('/download/:filename', (req, res) => {
 
 app.delete('/files/:filename', (req, res) => {
     const filePath = path.join(uploadDir, req.params.filename);
-    if (!fs.existsSync(filePath)) return res.status(404).send('文件不存在');
+    if (!fs.existsSync(filePath)) return res.status(404).json({ error: '文件不存在' });
     fs.unlink(filePath, (err) => {
-        if (err) return res.status(500).send('删除失败');
-        res.send({ message: '已删除' });
+        if (err) return res.status(500).json({ error: '删除失败' });
+        res.json({ message: '已删除' });
     });
 });
 
