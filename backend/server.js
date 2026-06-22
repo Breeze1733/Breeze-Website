@@ -10,6 +10,20 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
+app.use((req, res, next) => {
+    if (req.url.startsWith('/api/')) {
+        req.url = req.url.slice(4);
+    } else if (req.url === '/api') {
+        req.url = '/';
+    }
+    next();
+});
+
+function registerRoute(method, routePath, ...handlers) {
+    app[method](routePath, ...handlers);
+    app[method](`/api${routePath}`, ...handlers);
+}
+
 const uploadDir = path.join(__dirname, 'uploads');
 // 确保上传目录存在（不仅启动时检查，每次操作前也会检查）
 function ensureUploadDir() {
@@ -43,12 +57,12 @@ const storage = multer.diskStorage({
 
 const upload = multer({ storage: storage });
 
-app.post('/upload', upload.single('file'), (req, res) => {
+registerRoute('post', '/upload', upload.single('file'), (req, res) => {
     if (!req.file) return res.status(400).json({ error: '未选择文件' });
     res.json({ message: '上传成功', filename: req.file.filename });
 });
 
-app.get('/files', (req, res) => {
+registerRoute('get', '/files', (req, res) => {
     ensureUploadDir();
     fs.readdir(uploadDir, (err, files) => {
         if (err) return res.status(500).json({ error: '读取目录失败' });
@@ -56,7 +70,7 @@ app.get('/files', (req, res) => {
     });
 });
 
-app.get('/download/:filename', (req, res) => {
+registerRoute('get', '/download/:filename', (req, res) => {
     const file = path.join(uploadDir, req.params.filename);
     if (!fs.existsSync(file)) return res.status(404).json({ error: '文件不存在' });
     res.download(file, (err) => {
@@ -64,7 +78,7 @@ app.get('/download/:filename', (req, res) => {
     });
 });
 
-app.delete('/files/:filename', (req, res) => {
+registerRoute('delete', '/files/:filename', (req, res) => {
     const filePath = path.join(uploadDir, req.params.filename);
     if (!fs.existsSync(filePath)) return res.status(404).json({ error: '文件不存在' });
     fs.unlink(filePath, (err) => {
@@ -80,7 +94,7 @@ if (!fs.existsSync(clipsDir)) {
 }
 
 // 获取所有剪切板内容
-app.get('/clips', (req, res) => {
+registerRoute('get', '/clips', (req, res) => {
     fs.readdir(clipsDir, (err, files) => {
         if (err) return res.status(500).send('读取剪切板失败');
         const clips = files
@@ -98,7 +112,7 @@ app.get('/clips', (req, res) => {
 });
 
 // 保存新的剪切板内容
-app.post('/clips', (req, res) => {
+registerRoute('post', '/clips', (req, res) => {
     const { content } = req.body;
     if (!content || !content.trim()) return res.status(400).send('内容不能为空');
     const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -112,7 +126,7 @@ app.post('/clips', (req, res) => {
 });
 
 // 更新剪切板内容
-app.put('/clips/:id', (req, res) => {
+registerRoute('put', '/clips/:id', (req, res) => {
     const { content } = req.body;
     if (!content || !content.trim()) return res.status(400).send('内容不能为空');
     const filePath = path.join(clipsDir, `${req.params.id}.json`);
@@ -127,7 +141,7 @@ app.put('/clips/:id', (req, res) => {
 });
 
 // 删除剪切板内容
-app.delete('/clips/:id', (req, res) => {
+registerRoute('delete', '/clips/:id', (req, res) => {
     const filePath = path.join(clipsDir, `${req.params.id}.json`);
     if (!fs.existsSync(filePath)) return res.status(404).send('内容不存在');
     fs.unlink(filePath, (err) => {
@@ -138,7 +152,7 @@ app.delete('/clips/:id', (req, res) => {
 
 // 扫描 audio 文件夹返回音乐列表
 const audioDir = path.join(__dirname, '..', 'audio');
-app.get('/audio-list', (req, res) => {
+registerRoute('get', '/audio-list', (req, res) => {
     fs.readdir(audioDir, (err, files) => {
         if (err) return res.status(500).json({ error: '读取音频目录失败' });
         const audioExts = ['.mp3', '.flac', '.wav', '.ogg', '.m4a', '.aac', '.wma'];
