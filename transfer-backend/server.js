@@ -10,7 +10,10 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
-const uploadDir = path.join(__dirname, '..', 'backend', 'uploads');
+// =========================================================
+// 【核心修改】物理隔离：改在当前独立后端目录下创建独立的文件夹
+// =========================================================
+const uploadDir = path.join(__dirname, 'transfer-uploads');
 
 function ensureUploadDir() {
     if (!fs.existsSync(uploadDir)) {
@@ -30,12 +33,9 @@ function resolveUploadPath(inputUrl) {
         pathname = inputUrl;
     }
 
+    // 仅保留当前中转站的标准路径解析
     if (pathname.startsWith('/uploads/')) {
         return decodeURIComponent(pathname.replace(/^\/uploads\//, ''));
-    }
-
-    if (pathname.startsWith('/api/uploads/')) {
-        return decodeURIComponent(pathname.replace(/^\/api\/uploads\//, ''));
     }
 
     return null;
@@ -149,8 +149,10 @@ app.delete('/files/:filename', (req, res) => {
     });
 });
 
+// =========================================================
+// 【干净清爽】仅映射当前中转站的独立目录，移除 /api/uploads
+// =========================================================
 app.use('/uploads', express.static(uploadDir));
-app.use('/api/uploads', express.static(uploadDir));
 
 app.listen(PORT, () => {
     console.log(`文件中转站后端运行在 http://localhost:${PORT}`);
