@@ -1,9 +1,15 @@
 # 依赖
 backend/node_modules/
+transfer-backend/node_modules/
 
 # 运行时缓存/数据
 backend/clips/
 backend/uploads/
+backend/data
+
+transfer-backend/clips/
+transfer-backend/uploads/
+transfer-backend/data
 
 # 旧版本
 old version/

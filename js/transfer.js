@@ -1,5 +1,5 @@
 // js/transfer.js
-const API_BASE = '/api';
+const API_BASE = window.__TRANSFER_API_BASE__ || '/transfer-api';
 
 const fileInput = document.getElementById('file-input');
 const fileNameDisplay = document.getElementById('file-name-display');

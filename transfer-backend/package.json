@@ -1,0 +1,15 @@
+{
+  "name": "transfer-backend",
+  "version": "1.0.0",
+  "description": "Standalone backend for the file transfer station",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "multer": "^2.1.1"
+  }
+}

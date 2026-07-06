@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 
@@ -24,68 +23,141 @@ function registerRoute(method, routePath, ...handlers) {
     app[method](`/api${routePath}`, ...handlers);
 }
 
-const uploadDir = path.join(__dirname, 'uploads');
-// 确保上传目录存在（不仅启动时检查，每次操作前也会检查）
-function ensureUploadDir() {
-    if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
+function ok(res, data = {}) {
+    return res.json({ ok: true, data });
+}
+
+function fail(res, status, error) {
+    return res.status(status).json({ ok: false, error });
+}
+
+const dataDir = path.join(__dirname, 'data');
+const usersFile = path.join(dataDir, 'users.json');
+const momentsFile = path.join(dataDir, 'moments.json');
+
+function ensureDataFiles() {
+    if (!fs.existsSync(dataDir)) {
+        fs.mkdirSync(dataDir, { recursive: true });
+    }
+    if (!fs.existsSync(usersFile)) {
+        fs.writeFileSync(usersFile, '[]', 'utf8');
+    }
+    if (!fs.existsSync(momentsFile)) {
+        fs.writeFileSync(momentsFile, '[]', 'utf8');
     }
 }
-ensureUploadDir();
 
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-        // 处理中文乱码
-        const originalName = Buffer.from(file.originalname, "latin1").toString("utf8");
-        const ext = path.extname(originalName);
-        const name = path.basename(originalName, ext);
-        
-        let finalName = originalName;
-        let counter = 1;
-
-        // 重名自动加 (1), (2)...
-        while (fs.existsSync(path.join(uploadDir, finalName))) {
-            finalName = `${name} (${counter})${ext}`;
-            counter++;
-        }
-        cb(null, finalName);
+function readJsonArray(filePath) {
+    try {
+        const text = fs.readFileSync(filePath, 'utf8');
+        const data = JSON.parse(text);
+        return Array.isArray(data) ? data : [];
+    } catch {
+        return [];
     }
-});
+}
 
-const upload = multer({ storage: storage });
+function writeJsonArray(filePath, data) {
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
+}
 
-registerRoute('post', '/upload', upload.single('file'), (req, res) => {
-    if (!req.file) return res.status(400).json({ error: '未选择文件' });
-    res.json({ message: '上传成功', filename: req.file.filename });
-});
+function ensurePresetUsers() {
+    const users = readJsonArray(usersFile);
+    let created = false;
 
-registerRoute('get', '/files', (req, res) => {
-    ensureUploadDir();
-    fs.readdir(uploadDir, (err, files) => {
-        if (err) return res.status(500).json({ error: '读取目录失败' });
-        res.json(files.map(file => ({ name: file })));
-    });
-});
+    if (!users.some(u => u.uid === 'A')) {
+        users.push({ uid: 'A', nickname: '用户A', partner_uid: 'B', avatar_url: '' });
+        created = true;
+    }
+    if (!users.some(u => u.uid === 'B')) {
+        users.push({ uid: 'B', nickname: '用户B', partner_uid: 'A', avatar_url: '' });
+        created = true;
+    }
 
-registerRoute('get', '/download/:filename', (req, res) => {
-    const file = path.join(uploadDir, req.params.filename);
-    if (!fs.existsSync(file)) return res.status(404).json({ error: '文件不存在' });
-    res.download(file, (err) => {
-        if (err) console.error("下载中断:", err);
-    });
-});
+    if (created) {
+        writeJsonArray(usersFile, users);
+    }
 
-registerRoute('delete', '/files/:filename', (req, res) => {
-    const filePath = path.join(uploadDir, req.params.filename);
-    if (!fs.existsSync(filePath)) return res.status(404).json({ error: '文件不存在' });
-    fs.unlink(filePath, (err) => {
-        if (err) return res.status(500).json({ error: '删除失败' });
-        res.json({ message: '已删除' });
-    });
-});
+    return created;
+}
+
+function isValidDateStr(dateStr) {
+    return /^\d{4}-\d{2}-\d{2}$/.test(dateStr);
+}
+
+function sanitizeUidList(authorIds) {
+    return authorIds
+        .split(',')
+        .map(v => v.trim())
+        .filter(Boolean);
+}
+
+function makeMomentId() {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function nowIsoUtc8() {
+    const d = new Date(Date.now() + 8 * 60 * 60 * 1000);
+    const pad = (n, len = 2) => String(n).padStart(len, '0');
+    return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}:${pad(d.getUTCSeconds())}.${pad(d.getUTCMilliseconds(), 3)}+08:00`;
+}
+
+function toIsoUtc8(value) {
+    const date = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return nowIsoUtc8();
+    }
+
+    const shifted = new Date(date.getTime() + 8 * 60 * 60 * 1000);
+    const pad = (n, len = 2) => String(n).padStart(len, '0');
+    return `${shifted.getUTCFullYear()}-${pad(shifted.getUTCMonth() + 1)}-${pad(shifted.getUTCDate())}T${pad(shifted.getUTCHours())}:${pad(shifted.getUTCMinutes())}:${pad(shifted.getUTCSeconds())}.${pad(shifted.getUTCMilliseconds(), 3)}+08:00`;
+}
+
+function normalizeMomentRecord(moment) {
+    const createdAt = moment.created_at ? toIsoUtc8(moment.created_at) : nowIsoUtc8();
+    const updatedAt = moment.updated_at ? toIsoUtc8(moment.updated_at) : createdAt;
+
+    return {
+        ...moment,
+        self_image_url: normalizeUploadUrl(moment.self_image_url),
+        partner_image_url: normalizeUploadUrl(moment.partner_image_url),
+        created_at: createdAt,
+        updated_at: updatedAt
+    };
+}
+
+function migrateMomentRecords() {
+    const moments = readJsonArray(momentsFile);
+    const normalized = moments.map(normalizeMomentRecord);
+    const changed = JSON.stringify(moments) !== JSON.stringify(normalized);
+
+    if (changed) {
+        writeJsonArray(momentsFile, normalized);
+    }
+}
+
+function normalizeUploadUrl(value) {
+    if (typeof value !== 'string' || !value) {
+        return value;
+    }
+    if (value.startsWith('https://breeze.qzz.io/uploads/')) {
+        return value;
+    }
+    if (value.startsWith('https://breeze.qzz.io/api/uploads/')) {
+        return value.replace('https://breeze.qzz.io/api/uploads/', 'https://breeze.qzz.io/uploads/');
+    }
+    if (value.startsWith('/uploads/')) {
+        return value;
+    }
+    if (value.startsWith('/api/uploads/')) {
+        return value.replace('/api/uploads/', '/uploads/');
+    }
+    return value;
+}
+
+ensureDataFiles();
+ensurePresetUsers();
+migrateMomentRecords();
 
 // --- 云剪切板 API ---
 const clipsDir = path.join(__dirname, 'clips');
@@ -164,6 +236,185 @@ registerRoute('get', '/audio-list', (req, res) => {
             }));
         res.json(songs);
     });
+});
+
+// --- Split Moments API ---
+registerRoute('post', '/users/ensure', (req, res) => {
+    const created = ensurePresetUsers();
+    return ok(res, { created });
+});
+
+registerRoute('get', '/users/:uid', (req, res) => {
+    const users = readJsonArray(usersFile);
+    const user = users.find(u => u.uid === req.params.uid);
+    if (!user) {
+        return fail(res, 404, '用户不存在');
+    }
+    return ok(res, {
+        ...user,
+        avatar_url: normalizeUploadUrl(user.avatar_url)
+    });
+});
+
+registerRoute('put', '/users/:uid', (req, res) => {
+    const users = readJsonArray(usersFile);
+    const index = users.findIndex(u => u.uid === req.params.uid);
+    if (index === -1) {
+        return fail(res, 404, '用户不存在');
+    }
+
+    const updates = req.body || {};
+    const next = { ...users[index] };
+
+    if (Object.prototype.hasOwnProperty.call(updates, 'nickname')) {
+        if (typeof updates.nickname !== 'string') {
+            return fail(res, 400, 'nickname 必须是字符串');
+        }
+        next.nickname = updates.nickname;
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updates, 'avatar_url')) {
+        if (typeof updates.avatar_url !== 'string') {
+            return fail(res, 400, 'avatar_url 必须是字符串');
+        }
+        next.avatar_url = updates.avatar_url;
+    }
+
+    users[index] = next;
+    writeJsonArray(usersFile, users);
+    return res.json({ ok: true });
+});
+
+registerRoute('get', '/moments', (req, res) => {
+    const { date_str: dateStr, author_ids: authorIds } = req.query;
+    if (!dateStr || !authorIds) {
+        return fail(res, 400, 'date_str 和 author_ids 为必填参数');
+    }
+    if (!isValidDateStr(dateStr)) {
+        return fail(res, 400, 'date_str 格式必须为 YYYY-MM-DD');
+    }
+
+    const uidList = sanitizeUidList(String(authorIds));
+    if (uidList.length === 0) {
+        return fail(res, 400, 'author_ids 不能为空');
+    }
+
+    const moments = readJsonArray(momentsFile)
+        .filter(m => m.date_str === dateStr && uidList.includes(m.author_id))
+        .sort((a, b) => String(a.author_id).localeCompare(String(b.author_id)));
+
+    return ok(res, moments.map(normalizeMomentRecord));
+});
+
+registerRoute('post', '/moments', (req, res) => {
+    const {
+        date_str: dateStr,
+        author_id: authorId,
+        self_image_url: selfImageUrl = '',
+        partner_image_url: partnerImageUrl = '',
+        feeling = ''
+    } = req.body || {};
+
+    if (!dateStr || !authorId) {
+        return fail(res, 400, 'date_str 和 author_id 为必填字段');
+    }
+    if (!isValidDateStr(dateStr)) {
+        return fail(res, 400, 'date_str 格式必须为 YYYY-MM-DD');
+    }
+
+    const users = readJsonArray(usersFile);
+    if (!users.some(u => u.uid === authorId)) {
+        return fail(res, 400, 'author_id 无效');
+    }
+
+    // created_at / updated_at 由服务端生成，前端无需也不能传入。
+
+    const moments = readJsonArray(momentsFile);
+    const duplicated = moments.some(m => m.date_str === dateStr && m.author_id === authorId);
+    if (duplicated) {
+        return fail(res, 409, '该用户在该日期已有动态');
+    }
+
+    const now = nowIsoUtc8();
+    const id = makeMomentId();
+    moments.push({
+        id,
+        date_str: dateStr,
+        author_id: authorId,
+        self_image_url: String(selfImageUrl || ''),
+        partner_image_url: String(partnerImageUrl || ''),
+        feeling: String(feeling || ''),
+        created_at: now,
+        updated_at: now
+    });
+
+    writeJsonArray(momentsFile, moments);
+    return ok(res, { id });
+});
+
+registerRoute('put', '/moments/:id', (req, res) => {
+    const moments = readJsonArray(momentsFile);
+    const index = moments.findIndex(m => String(m.id) === String(req.params.id));
+    if (index === -1) {
+        return fail(res, 404, '动态不存在');
+    }
+
+    const original = moments[index];
+    const updates = req.body || {};
+    const next = { ...original };
+
+    if (typeof updates.self_image_url === 'string') {
+        next.self_image_url = updates.self_image_url;
+    }
+    if (typeof updates.partner_image_url === 'string') {
+        next.partner_image_url = updates.partner_image_url;
+    }
+    if (typeof updates.feeling === 'string') {
+        next.feeling = updates.feeling;
+    }
+    if (typeof updates.date_str === 'string') {
+        if (!isValidDateStr(updates.date_str)) {
+            return fail(res, 400, 'date_str 格式必须为 YYYY-MM-DD');
+        }
+        next.date_str = updates.date_str;
+    }
+    if (typeof updates.author_id === 'string') {
+        const users = readJsonArray(usersFile);
+        if (!users.some(u => u.uid === updates.author_id)) {
+            return fail(res, 400, 'author_id 无效');
+        }
+        next.author_id = updates.author_id;
+    }
+
+    const conflict = moments.some((m, i) => {
+        if (i === index) return false;
+        return m.date_str === next.date_str && m.author_id === next.author_id;
+    });
+    if (conflict) {
+        return fail(res, 409, '更新后与现有动态冲突（同用户同日期）');
+    }
+
+    next.updated_at = nowIsoUtc8();
+    next.created_at = original.created_at ? toIsoUtc8(original.created_at) : nowIsoUtc8();
+    moments[index] = next;
+    writeJsonArray(momentsFile, moments);
+    return res.json({ ok: true });
+});
+
+registerRoute('get', '/moments/:uid/dates', (req, res) => {
+    const uid = req.params.uid;
+    const users = readJsonArray(usersFile);
+    if (!users.some(u => u.uid === uid)) {
+        return fail(res, 404, '用户不存在');
+    }
+
+    const dates = [...new Set(
+        readJsonArray(momentsFile)
+            .filter(m => m.author_id === uid)
+            .map(m => m.date_str)
+    )].sort();
+
+    return ok(res, dates);
 });
 
 const server = app.listen(PORT, () => {
