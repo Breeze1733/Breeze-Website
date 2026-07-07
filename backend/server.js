@@ -527,6 +527,38 @@ const server = app.listen(PORT, () => {
     console.log(`后端运行在 http://localhost:${PORT}`);
 });
 
+// --- 版本更新 API ---
+const versionFile = path.join(__dirname, 'version.json');
+function readVersion() {
+    try {
+        return JSON.parse(fs.readFileSync(versionFile, 'utf8'));
+    } catch {
+        return { version: '1.0.0', version_code: 1, release_notes: '' };
+    }
+}
+
+registerRoute('get', '/version/latest', (req, res) => {
+    const ver = readVersion();
+    return ok(res, {
+        version: ver.version,
+        version_code: ver.version_code,
+        download_url: 'https://breeze.qzz.io/api/version/download',
+        release_notes: ver.release_notes || ''
+    });
+});
+
+const apkDir = path.join(__dirname, 'apk');
+if (!fs.existsSync(apkDir)) {
+    fs.mkdirSync(apkDir, { recursive: true });
+}
+
+registerRoute('get', '/version/download', (req, res) => {
+    const files = fs.readdirSync(apkDir).filter(f => f.endsWith('.apk'));
+    if (files.length === 0) return fail(res, 404, '暂无安装包');
+    const apkFile = path.join(apkDir, files[0]);
+    res.download(apkFile);
+});
+
 // 全局错误处理 —— 防止任何未捕获异常返回 HTML
 app.use((err, req, res, _next) => {
     console.error('未捕获错误:', err);

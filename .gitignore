@@ -18,6 +18,7 @@ old version/
 fast.txt
 
 # IDE / 编辑器
+backend/apk
 .vscode/
 .idea/
 *.swp
