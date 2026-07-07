@@ -92,12 +92,29 @@ uploadBtn.addEventListener('click', () => {
 });
 
 // 3. 获取文件列表逻辑
+async function fetchFileListOnce() {
+    const response = await fetch(`${API_BASE}/files`, {
+        cache: 'no-store'
+    });
+
+    if (!response.ok) {
+        throw new Error(`Network response was not ok (${response.status})`);
+    }
+
+    return response.json();
+}
+
 async function fetchFileList() {
     try {
-        const response = await fetch(`${API_BASE}/files`);
-        if (!response.ok) throw new Error('Network response was not ok');
-        
-        const files = await response.json();
+        let files;
+
+        try {
+            files = await fetchFileListOnce();
+        } catch (error) {
+            await new Promise(resolve => setTimeout(resolve, 300));
+            files = await fetchFileListOnce();
+        }
+
         fileListUl.innerHTML = ''; // 清空现有列表
         
         const visibleFiles = files.filter(file => file.name !== '.gitkeep');

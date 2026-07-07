@@ -2,12 +2,13 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
+const multer = require('multer');
 
 const app = express();
 const PORT = 3000;
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '1gb' }));
 
 app.use((req, res, next) => {
     if (req.url.startsWith('/api/')) {
@@ -121,6 +122,8 @@ function normalizeMomentRecord(moment) {
         ...moment,
         self_image_url: normalizeUploadUrl(moment.self_image_url),
         partner_image_url: normalizeUploadUrl(moment.partner_image_url),
+        mood: normalizeMood(moment.mood),
+        comments: normalizeComments(moment.comments),
         created_at: createdAt,
         updated_at: updatedAt
     };
@@ -140,24 +143,106 @@ function normalizeUploadUrl(value) {
     if (typeof value !== 'string' || !value) {
         return value;
     }
-    if (value.startsWith('https://breeze.qzz.io/uploads/')) {
-        return value;
-    }
+    // 新规范：统一走 /api/uploads/ 路径
     if (value.startsWith('https://breeze.qzz.io/api/uploads/')) {
-        return value.replace('https://breeze.qzz.io/api/uploads/', 'https://breeze.qzz.io/uploads/');
-    }
-    if (value.startsWith('/uploads/')) {
         return value;
+    }
+    // 旧格式兼容：/uploads/ → /api/uploads/
+    if (value.startsWith('https://breeze.qzz.io/uploads/')) {
+        return value.replace('https://breeze.qzz.io/uploads/', 'https://breeze.qzz.io/api/uploads/');
     }
     if (value.startsWith('/api/uploads/')) {
-        return value.replace('/api/uploads/', '/uploads/');
+        return value;
+    }
+    if (value.startsWith('/uploads/')) {
+        return value.replace('/uploads/', '/api/uploads/');
     }
     return value;
+}
+
+function normalizeMood(value) {
+    if (value === null || value === undefined || value === '') {
+        return null;
+    }
+
+    const mood = Number(value);
+    if (!Number.isInteger(mood) || mood < 1 || mood > 10) {
+        return null;
+    }
+
+    return mood;
+}
+
+function normalizeComments(value) {
+    if (Array.isArray(value)) {
+        return value.map(item => String(item));
+    }
+
+    if (typeof value === 'string' && value.trim()) {
+        try {
+            const parsed = JSON.parse(value);
+            if (Array.isArray(parsed)) {
+                return parsed.map(item => String(item));
+            }
+        } catch {
+            return [];
+        }
+    }
+
+    return [];
 }
 
 ensureDataFiles();
 ensurePresetUsers();
 migrateMomentRecords();
+
+// ─── 图片上传配置 ───
+const uploadsDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const upload = multer({
+    storage: multer.diskStorage({
+        destination: uploadsDir,
+        filename: (_req, file, cb) => {
+            const ext = path.extname(file.originalname);
+            const name = Date.now().toString(36) + Math.random().toString(36).slice(2, 8) + ext;
+            cb(null, name);
+        }
+    }),
+    fileFilter: (_req, file, cb) => {
+        const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
+        const ext = path.extname(file.originalname).toLowerCase();
+        cb(null, allowed.includes(ext));
+    }
+});
+
+// 上传图片
+registerRoute('post', '/upload', upload.single('file'), (req, res) => {
+    if (!req.file) {
+        return fail(res, 400, '请选择 jpg/png/webp 图片');
+    }
+    const url = `https://breeze.qzz.io/api/uploads/${req.file.filename}`;
+    return ok(res, { url });
+});
+
+// 删除图片
+registerRoute('post', '/upload/delete', (req, res) => {
+    const { url } = req.body || {};
+    if (!url) return fail(res, 400, 'url 不能为空');
+    try {
+        const filename = String(url).split('/').pop();
+        if (filename) {
+            const filePath = path.join(uploadsDir, filename);
+            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+        }
+    } catch (_) { /* 删失败不阻塞 */ }
+    return ok(res);
+});
+
+// 静态文件服务 —— 让 /uploads/xxx.jpg 能直接访问
+app.use('/uploads', express.static(uploadsDir));
 
 // --- 云剪切板 API ---
 const clipsDir = path.join(__dirname, 'clips');
@@ -312,7 +397,8 @@ registerRoute('post', '/moments', (req, res) => {
         author_id: authorId,
         self_image_url: selfImageUrl = '',
         partner_image_url: partnerImageUrl = '',
-        feeling = ''
+        feeling = '',
+        mood: moodInput
     } = req.body || {};
 
     if (!dateStr || !authorId) {
@@ -335,6 +421,11 @@ registerRoute('post', '/moments', (req, res) => {
         return fail(res, 409, '该用户在该日期已有动态');
     }
 
+    const mood = normalizeMood(moodInput);
+    if (moodInput !== undefined && mood === null) {
+        return fail(res, 400, 'mood 必须是 1-10 的整数');
+    }
+
     const now = nowIsoUtc8();
     const id = makeMomentId();
     moments.push({
@@ -344,6 +435,8 @@ registerRoute('post', '/moments', (req, res) => {
         self_image_url: String(selfImageUrl || ''),
         partner_image_url: String(partnerImageUrl || ''),
         feeling: String(feeling || ''),
+        mood,
+        comments: [],
         created_at: now,
         updated_at: now
     });
@@ -371,6 +464,19 @@ registerRoute('put', '/moments/:id', (req, res) => {
     }
     if (typeof updates.feeling === 'string') {
         next.feeling = updates.feeling;
+    }
+    if (Object.prototype.hasOwnProperty.call(updates, 'mood')) {
+        const mood = normalizeMood(updates.mood);
+        if (updates.mood !== null && updates.mood !== undefined && mood === null) {
+            return fail(res, 400, 'mood 必须是 1-10 的整数');
+        }
+        next.mood = mood;
+    }
+    if (Object.prototype.hasOwnProperty.call(updates, 'comments')) {
+        if (!Array.isArray(updates.comments)) {
+            return fail(res, 400, 'comments 必须是数组');
+        }
+        next.comments = normalizeComments(updates.comments);
     }
     if (typeof updates.date_str === 'string') {
         if (!isValidDateStr(updates.date_str)) {
@@ -419,6 +525,15 @@ registerRoute('get', '/moments/:uid/dates', (req, res) => {
 
 const server = app.listen(PORT, () => {
     console.log(`后端运行在 http://localhost:${PORT}`);
+});
+
+// 全局错误处理 —— 防止任何未捕获异常返回 HTML
+app.use((err, req, res, _next) => {
+    console.error('未捕获错误:', err);
+    if (req.url.startsWith('/api/') || req.url.startsWith('/upload') || req.url.startsWith('/moments') || req.url.startsWith('/users')) {
+        return res.status(500).json({ ok: false, error: '服务器内部错误: ' + (err.message || '未知错误') });
+    }
+    return res.status(500).send('Internal Server Error');
 });
 
 // --- 大文件传输核心设置 ---

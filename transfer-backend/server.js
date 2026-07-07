@@ -10,6 +10,26 @@ const PORT = process.env.PORT || 3001;
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 
+function stripKnownPrefixes(req, res, next) {
+    const prefixes = ['/transfer-api'];
+
+    for (const prefix of prefixes) {
+        if (req.url === prefix) {
+            req.url = '/';
+            break;
+        }
+
+        if (req.url.startsWith(prefix + '/')) {
+            req.url = req.url.slice(prefix.length);
+            break;
+        }
+    }
+
+    next();
+}
+
+app.use(stripKnownPrefixes);
+
 // =========================================================
 // 【核心修改】物理隔离：改在当前独立后端目录下创建独立的文件夹
 // =========================================================
