@@ -1,5 +1,5 @@
 {
-  "version": "1.0.1",
-  "version_code": 2,
-  "release_notes": "新增心情打分、评论功能、历史编辑"
+  "version": "1.0.2",
+  "version_code": 3,
+  "release_notes": "新增缓存功能，评论不影响编辑时间，离线可查看日记"
 }

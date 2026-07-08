@@ -500,7 +500,11 @@ registerRoute('put', '/moments/:id', (req, res) => {
         return fail(res, 409, '更新后与现有动态冲突（同用户同日期）');
     }
 
-    next.updated_at = nowIsoUtc8();
+    // 仅评论变动不更新编辑时间
+    const isOnlyComments = Object.keys(updates).every(k => k === 'comments');
+    next.updated_at = isOnlyComments
+        ? (original.updated_at ? toIsoUtc8(original.updated_at) : nowIsoUtc8())
+        : nowIsoUtc8();
     next.created_at = original.created_at ? toIsoUtc8(original.created_at) : nowIsoUtc8();
     moments[index] = next;
     writeJsonArray(momentsFile, moments);
