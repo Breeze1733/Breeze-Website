@@ -123,10 +123,16 @@ function normalizeMomentRecord(moment) {
         self_image_url: normalizeUploadUrl(moment.self_image_url),
         partner_image_url: normalizeUploadUrl(moment.partner_image_url),
         mood: normalizeMood(moment.mood),
-        comments: normalizeComments(moment.comments),
+        comments: normalizeComments(moment.comments, moment.author_id),
         created_at: createdAt,
         updated_at: updatedAt
     };
+}
+
+function getPartnerUid(authorId) {
+    if (authorId === 'A') return 'B';
+    if (authorId === 'B') return 'A';
+    return '';
 }
 
 function migrateMomentRecords() {
@@ -173,16 +179,16 @@ function normalizeMood(value) {
     return mood;
 }
 
-function normalizeComments(value) {
+function normalizeComments(value, momentAuthorId) {
     if (Array.isArray(value)) {
-        return value.map(item => String(item));
+        return value.map(item => normalizeComment(item, momentAuthorId));
     }
 
     if (typeof value === 'string' && value.trim()) {
         try {
             const parsed = JSON.parse(value);
             if (Array.isArray(parsed)) {
-                return parsed.map(item => String(item));
+                return parsed.map(item => normalizeComment(item, momentAuthorId));
             }
         } catch {
             return [];
@@ -190,6 +196,36 @@ function normalizeComments(value) {
     }
 
     return [];
+}
+
+function normalizeComment(item, momentAuthorId) {
+    // 兼容旧格式：纯字符串 → 转为新结构，作者设为对方
+    if (typeof item === 'string') {
+        return {
+            id: makeMomentId(),
+            author_id: getPartnerUid(momentAuthorId),
+            content: item,
+            reply_to: null,
+            created_at: nowIsoUtc8()
+        };
+    }
+    // 新格式：对象
+    if (item && typeof item === 'object') {
+        return {
+            id: item.id || makeMomentId(),
+            author_id: String(item.author_id || getPartnerUid(momentAuthorId)),
+            content: String(item.content || ''),
+            reply_to: item.reply_to || null,
+            created_at: item.created_at ? toIsoUtc8(item.created_at) : nowIsoUtc8()
+        };
+    }
+    return {
+        id: makeMomentId(),
+        author_id: getPartnerUid(momentAuthorId),
+        content: String(item),
+        reply_to: null,
+        created_at: nowIsoUtc8()
+    };
 }
 
 ensureDataFiles();
@@ -476,7 +512,7 @@ registerRoute('put', '/moments/:id', (req, res) => {
         if (!Array.isArray(updates.comments)) {
             return fail(res, 400, 'comments 必须是数组');
         }
-        next.comments = normalizeComments(updates.comments);
+        next.comments = normalizeComments(updates.comments, next.author_id);
     }
     if (typeof updates.date_str === 'string') {
         if (!isValidDateStr(updates.date_str)) {
@@ -525,6 +561,94 @@ registerRoute('get', '/moments/:uid/dates', (req, res) => {
     )].sort();
 
     return ok(res, dates);
+});
+
+// ─── 话题讨论 API ───
+const topicsFile = path.join(dataDir, 'topics.json');
+const postsFile = path.join(dataDir, 'posts.json');
+
+function ensureTopicFiles() {
+    if (!fs.existsSync(topicsFile)) fs.writeFileSync(topicsFile, '[]', 'utf8');
+    if (!fs.existsSync(postsFile)) fs.writeFileSync(postsFile, '[]', 'utf8');
+}
+ensureTopicFiles();
+
+function makeTopicId() {
+    return 't' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+function makePostId() {
+    return 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+// 话题列表
+registerRoute('get', '/topics', (req, res) => {
+    const topics = readJsonArray(topicsFile)
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    return ok(res, topics);
+});
+
+// 创建话题
+registerRoute('post', '/topics', (req, res) => {
+    const { title, author_id } = req.body || {};
+    if (!title || !String(title).trim()) return fail(res, 400, '标题不能为空');
+    if (!author_id) return fail(res, 400, 'author_id 不能为空');
+
+    const topics = readJsonArray(topicsFile);
+    const topic = {
+        id: makeTopicId(),
+        title: String(title).trim(),
+        author_id: String(author_id),
+        created_at: nowIsoUtc8()
+    };
+    topics.push(topic);
+    writeJsonArray(topicsFile, topics);
+    return ok(res, topic);
+});
+
+// 话题详情（含帖子列表）
+registerRoute('get', '/topics/:id', (req, res) => {
+    const topics = readJsonArray(topicsFile);
+    const topic = topics.find(t => t.id === req.params.id);
+    if (!topic) return fail(res, 404, '话题不存在');
+
+    const posts = readJsonArray(postsFile)
+        .filter(p => p.topic_id === req.params.id)
+        .sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
+
+    return ok(res, { ...topic, posts });
+});
+
+// 发帖
+registerRoute('post', '/topics/:id/posts', (req, res) => {
+    const { author_id, content } = req.body || {};
+    if (!author_id) return fail(res, 400, 'author_id 不能为空');
+    if (!content || !String(content).trim()) return fail(res, 400, '内容不能为空');
+
+    const topics = readJsonArray(topicsFile);
+    if (!topics.some(t => t.id === req.params.id)) return fail(res, 404, '话题不存在');
+
+    const posts = readJsonArray(postsFile);
+    const post = {
+        id: makePostId(),
+        topic_id: req.params.id,
+        author_id: String(author_id),
+        content: String(content).trim(),
+        created_at: nowIsoUtc8()
+    };
+    posts.push(post);
+    writeJsonArray(postsFile, posts);
+    return ok(res, post);
+});
+
+// 删帖
+registerRoute('delete', '/topics/:id/posts/:postId', (req, res) => {
+    const posts = readJsonArray(postsFile);
+    const index = posts.findIndex(p => p.id === req.params.postId && p.topic_id === req.params.id);
+    if (index === -1) return fail(res, 404, '帖子不存在');
+    posts.splice(index, 1);
+    writeJsonArray(postsFile, posts);
+    return ok(res);
 });
 
 const server = app.listen(PORT, () => {

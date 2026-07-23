@@ -1,5 +1,5 @@
 {
-  "version": "1.0.2",
-  "version_code": 3,
-  "release_notes": "新增缓存功能，评论不影响编辑时间，离线可查看日记"
+  "version": "1.0.8",
+  "version_code": 9,
+  "release_notes": "修复了话题无法显示昵称的错误；修复了部分评论显示异常的问题"
 }
