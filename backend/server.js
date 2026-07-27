@@ -114,19 +114,34 @@ function toIsoUtc8(value) {
     return `${shifted.getUTCFullYear()}-${pad(shifted.getUTCMonth() + 1)}-${pad(shifted.getUTCDate())}T${pad(shifted.getUTCHours())}:${pad(shifted.getUTCMinutes())}:${pad(shifted.getUTCSeconds())}.${pad(shifted.getUTCMilliseconds(), 3)}+08:00`;
 }
 
+function normalizeImageUrls(moment) {
+    // 新格式：image_urls 数组（第一张为封面）
+    if (Array.isArray(moment.image_urls)) {
+        return moment.image_urls
+            .filter(u => typeof u === 'string' && u)
+            .map(normalizeUploadUrl);
+    }
+    // 旧格式迁移：self_image_url / partner_image_url → image_urls
+    return [moment.self_image_url, moment.partner_image_url]
+        .filter(u => typeof u === 'string' && u)
+        .map(normalizeUploadUrl);
+}
+
 function normalizeMomentRecord(moment) {
     const createdAt = moment.created_at ? toIsoUtc8(moment.created_at) : nowIsoUtc8();
     const updatedAt = moment.updated_at ? toIsoUtc8(moment.updated_at) : createdAt;
 
-    return {
+    const record = {
         ...moment,
-        self_image_url: normalizeUploadUrl(moment.self_image_url),
-        partner_image_url: normalizeUploadUrl(moment.partner_image_url),
+        image_urls: normalizeImageUrls(moment),
         mood: normalizeMood(moment.mood),
         comments: normalizeComments(moment.comments, moment.author_id),
         created_at: createdAt,
         updated_at: updatedAt
     };
+    delete record.self_image_url;
+    delete record.partner_image_url;
+    return record;
 }
 
 function getPartnerUid(authorId) {
@@ -431,11 +446,16 @@ registerRoute('post', '/moments', (req, res) => {
     const {
         date_str: dateStr,
         author_id: authorId,
+        image_urls: imageUrlsInput,
         self_image_url: selfImageUrl = '',
         partner_image_url: partnerImageUrl = '',
         feeling = '',
         mood: moodInput
     } = req.body || {};
+
+    if (imageUrlsInput !== undefined && !Array.isArray(imageUrlsInput)) {
+        return fail(res, 400, 'image_urls 必须是数组');
+    }
 
     if (!dateStr || !authorId) {
         return fail(res, 400, 'date_str 和 author_id 为必填字段');
@@ -462,14 +482,20 @@ registerRoute('post', '/moments', (req, res) => {
         return fail(res, 400, 'mood 必须是 1-10 的整数');
     }
 
+    // 新格式优先；无 image_urls 时兼容旧字段
+    const imageUrls = normalizeImageUrls({
+        image_urls: imageUrlsInput,
+        self_image_url: selfImageUrl,
+        partner_image_url: partnerImageUrl
+    });
+
     const now = nowIsoUtc8();
     const id = makeMomentId();
     moments.push({
         id,
         date_str: dateStr,
         author_id: authorId,
-        self_image_url: String(selfImageUrl || ''),
-        partner_image_url: String(partnerImageUrl || ''),
+        image_urls: imageUrls,
         feeling: String(feeling || ''),
         mood,
         comments: [],
@@ -492,11 +518,22 @@ registerRoute('put', '/moments/:id', (req, res) => {
     const updates = req.body || {};
     const next = { ...original };
 
-    if (typeof updates.self_image_url === 'string') {
-        next.self_image_url = updates.self_image_url;
+    if (Object.prototype.hasOwnProperty.call(updates, 'image_urls')) {
+        if (!Array.isArray(updates.image_urls)) {
+            return fail(res, 400, 'image_urls 必须是数组');
+        }
+        next.image_urls = updates.image_urls
+            .filter(u => typeof u === 'string' && u)
+            .map(normalizeUploadUrl);
     }
-    if (typeof updates.partner_image_url === 'string') {
-        next.partner_image_url = updates.partner_image_url;
+    // 旧客户端兼容：仍接受 self/partner 字段，合并进 image_urls
+    if (typeof updates.self_image_url === 'string' || typeof updates.partner_image_url === 'string') {
+        if (!Object.prototype.hasOwnProperty.call(updates, 'image_urls')) {
+            next.image_urls = normalizeImageUrls({
+                self_image_url: updates.self_image_url,
+                partner_image_url: updates.partner_image_url
+            });
+        }
     }
     if (typeof updates.feeling === 'string') {
         next.feeling = updates.feeling;

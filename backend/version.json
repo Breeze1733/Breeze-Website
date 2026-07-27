@@ -1,5 +1,5 @@
 {
-  "version": "1.0.8",
-  "version_code": 9,
-  "release_notes": "修复了话题无法显示昵称的错误；修复了部分评论显示异常的问题"
+  "version": "1.0.10",
+  "version_code": 11,
+  "release_notes": "图片可上传多张，头像支持裁剪"
 }
