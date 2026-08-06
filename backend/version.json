@@ -1,5 +1,5 @@
 {
-  "version": "1.0.10",
-  "version_code": 11,
-  "release_notes": "图片可上传多张，头像支持裁剪"
+  "version": "1.0.11",
+  "version_code": 12,
+  "release_notes": "图片查看单指切页、双指缩放"
 }

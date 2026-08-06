@@ -14,6 +14,15 @@ transfer-backend/data
 # 旧版本
 old version/
 
+# MediaPipe 手势模型与 WASM(体积大,birthday.html 有 CDN 兜底,不进版本库)
+models/
+js/tasks-vision/*.task
+js/tasks-vision/wasm/
+
+# 本地部署备份
+js/tasks-vision/legacy-0.10/
+js/tasks-vision/v101-backup/
+
 # 临时/个人文件
 fast.txt
 
