@@ -74,13 +74,22 @@ async function initPlaylist() {
     playlist = songs;
   }
   // 用文件名做匹配（避免编码差异）
-  const rawSrc = audio.getAttribute('src');  // 形如 ./audio/十七岁 - 刘德华.mp3
+  const rawSrc = audio.getAttribute('src');  // 形如 ./audio/刘德华 - 十七岁.mp3
   const rawName = rawSrc ? rawSrc.split('/').pop() : '';  // 提取文件名
   const match = playlist.find(s => {
     const sName = decodeURIComponent(s.src.split('/').pop());
     return sName === rawName;
   });
-  currentSrc = match ? match.src : (playlist[0] ? playlist[0].src : rawSrc);
+  if (match) {
+    currentSrc = match.src;
+  } else if (playlist.length > 0) {
+    // HTML 中 src 与服务器列表不一致时，自动纠正到列表第一首
+    currentSrc = playlist[0].src;
+    audio.src = playlist[0].src;
+    songTitle.textContent = playlist[0].title;
+  } else {
+    currentSrc = rawSrc;
+  }
 }
 
 initPlaylist();
