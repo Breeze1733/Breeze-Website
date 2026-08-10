@@ -17,6 +17,9 @@ let beforeSound = 20, realSound = 20;      // 点击静音前的音量和目前�
 let playlist = [];
 let currentSrc = '';  // 跟踪当前播放的歌曲 src
 
+// 默认播放的歌曲（文件名，不含扩展名），匹配不到时退回列表第一首
+const DEFAULT_SONG_NAME = '陈奕迅 - 我们万岁';
+
 // 从服务器获取最新播放列表（重新扫描 audio 文件夹）
 async function fetchPlaylist() {
   try {
@@ -73,17 +76,21 @@ async function initPlaylist() {
   if (songs && songs.length > 0) {
     playlist = songs;
   }
-  // 用文件名做匹配（避免编码差异）
-  const rawSrc = audio.getAttribute('src');  // 形如 ./audio/刘德华 - 十七岁.mp3
-  const rawName = rawSrc ? rawSrc.split('/').pop() : '';  // 提取文件名
-  const match = playlist.find(s => {
-    const sName = decodeURIComponent(s.src.split('/').pop());
-    return sName === rawName;
-  });
+  // 用文件名做匹配（忽略编码差异与 ?v= 缓存版本参数）
+  // 注意：getAttribute('src') 在不同时序下可能返回未编码/编码/被改写的值，
+  // 因此对 rawName 也做解码，并额外用 DEFAULT_SONG_NAME 兜底，保证默认歌曲可靠命中
+  const rawSrc = audio.getAttribute('src');
+  const rawName = rawSrc ? decodeURIComponent(rawSrc.split('/').pop().split('?')[0]) : '';
+  const match =
+    playlist.find(s => decodeURIComponent(s.src.split('/').pop().split('?')[0]) === rawName) ||
+    playlist.find(s => s.title === DEFAULT_SONG_NAME);
   if (match) {
     currentSrc = match.src;
+    // 同步为带版本参数的 src，避免命中 CDN 上的旧缓存（0 字节/旧版本）
+    audio.src = match.src;
+    songTitle.textContent = match.title;
   } else if (playlist.length > 0) {
-    // HTML 中 src 与服务器列表不一致时，自动纠正到列表第一首
+    // 仍未匹配到时，自动纠正到列表第一首
     currentSrc = playlist[0].src;
     audio.src = playlist[0].src;
     songTitle.textContent = playlist[0].title;
