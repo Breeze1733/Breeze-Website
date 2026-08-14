@@ -1,5 +1,5 @@
 {
-  "version": "1.0.12",
-  "version_code": 13,
-  "release_notes": "优化交互体验，图片顺序可长按拖动调整，评论新增存草稿按键"
+  "version": "1.1.1",
+  "version_code": 18,
+  "release_notes": "[重要版本]新增壁纸功能，支持自定义壁纸"
 }

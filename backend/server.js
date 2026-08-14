@@ -388,7 +388,9 @@ registerRoute('get', '/users/:uid', (req, res) => {
     }
     return ok(res, {
         ...user,
-        avatar_url: normalizeUploadUrl(user.avatar_url)
+        avatar_url: normalizeUploadUrl(user.avatar_url),
+        wallpaper_diary_url: normalizeUploadUrl(user.wallpaper_diary_url),
+        wallpaper_topic_url: normalizeUploadUrl(user.wallpaper_topic_url)
     });
 });
 
@@ -414,6 +416,34 @@ registerRoute('put', '/users/:uid', (req, res) => {
             return fail(res, 400, 'avatar_url 必须是字符串');
         }
         next.avatar_url = updates.avatar_url;
+    }
+
+    // 壁纸字段：日记/话题各一条 URL + 透明度
+    if (Object.prototype.hasOwnProperty.call(updates, 'wallpaper_diary_url')) {
+        if (typeof updates.wallpaper_diary_url !== 'string') {
+            return fail(res, 400, 'wallpaper_diary_url 必须是字符串');
+        }
+        next.wallpaper_diary_url = updates.wallpaper_diary_url;
+    }
+    if (Object.prototype.hasOwnProperty.call(updates, 'wallpaper_topic_url')) {
+        if (typeof updates.wallpaper_topic_url !== 'string') {
+            return fail(res, 400, 'wallpaper_topic_url 必须是字符串');
+        }
+        next.wallpaper_topic_url = updates.wallpaper_topic_url;
+    }
+    if (Object.prototype.hasOwnProperty.call(updates, 'wallpaper_diary_opacity')) {
+        const opacity = Number(updates.wallpaper_diary_opacity);
+        if (!Number.isFinite(opacity) || opacity < 0 || opacity > 1) {
+            return fail(res, 400, 'wallpaper_diary_opacity 必须是 0~1 的数字');
+        }
+        next.wallpaper_diary_opacity = opacity;
+    }
+    if (Object.prototype.hasOwnProperty.call(updates, 'wallpaper_topic_opacity')) {
+        const opacity = Number(updates.wallpaper_topic_opacity);
+        if (!Number.isFinite(opacity) || opacity < 0 || opacity > 1) {
+            return fail(res, 400, 'wallpaper_topic_opacity 必须是 0~1 的数字');
+        }
+        next.wallpaper_topic_opacity = opacity;
     }
 
     users[index] = next;
