@@ -2,7 +2,7 @@
 @media screen and (max-width: 700px) {
   body {
     /* background-image: url(https://t.mwm.moe/mp); */
-    background-image: url(../images/mb.webp);
+    background-image: linear-gradient(rgba(15, 18, 30, 0.22), rgba(15, 18, 30, 0.22)), url(../images/mb.webp?v=4);
     background-size: cover;
   }
 

@@ -1,5 +1,5 @@
 {
-  "version": "1.1.1",
-  "version_code": 18,
-  "release_notes": "[重要版本]新增壁纸功能，支持自定义壁纸"
+  "version": "1.1.2",
+  "version_code": 19,
+  "release_notes": "修复已知问题，清除冗余代码"
 }

@@ -1,28 +1,35 @@
-/* 指定要下载的字体文件 */
+/* 指定要下载的字体文件
+   已全部子集化为 woff2（中文手写体 5MB -> 1MB，其余 <20KB）
+   font-display: swap 保证字体加载期间文字立即可见 */
 @font-face {
   font-family: "edo";
-  src: url(../fonts/Action_Man_Bold.ttf);
+  src: url(../fonts/Action_Man_Bold.woff2) format('woff2'),
+    url(../fonts/Action_Man_Bold.ttf) format('truetype');
+  font-display: swap;
 }
 
 @font-face {
   font-family: "shoujin";
-  src: url(../fonts/CN-shoujin.TTF);
+  src: url(../fonts/CN-shoujin-subset.woff2) format('woff2');
+  font-display: swap;
 }
 
 @font-face {
   font-family: "led";
-  src: url(../fonts/LED.otf);
+  src: url(../fonts/LED.woff2) format('woff2'),
+    url(../fonts/LED.otf) format('opentype');
+  font-display: swap;
 }
 
 @font-face {
   font-family: "number";
-  src: url(../fonts/number.ttf);
+  src: url(../fonts/number.woff2) format('woff2'),
+    url(../fonts/number.ttf) format('truetype');
+  font-display: swap;
 }
 
-@font-face {
-  font-family: "harmonyos";
-  src: url(../fonts/CN-shoujin.TTF);
-}
+/* 原 harmonyos 声明与 shoujin 指向同一文件(CN-shoujin.TTF)且全站从未使用，
+   属历史遗留的重复引用，已移除；如需真 HarmonyOS 字体请重新引入 */
 
 @font-face {
   font-family: 'icomoon';
