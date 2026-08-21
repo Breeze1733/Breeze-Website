@@ -1,5 +1,5 @@
 {
-  "version": "1.1.2",
-  "version_code": 19,
-  "release_notes": "修复已知问题，清除冗余代码"
+  "version": "1.1.6",
+  "version_code": 23,
+  "release_notes": "新增信箱功能（在顶栏）\n对方有更新会在信箱中通知哟"
 }

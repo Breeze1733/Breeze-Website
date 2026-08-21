@@ -35,6 +35,7 @@ function fail(res, status, error) {
 const dataDir = path.join(__dirname, 'data');
 const usersFile = path.join(dataDir, 'users.json');
 const momentsFile = path.join(dataDir, 'moments.json');
+const notificationsFile = path.join(dataDir, 'notifications.json');
 
 function ensureDataFiles() {
     if (!fs.existsSync(dataDir)) {
@@ -45,6 +46,9 @@ function ensureDataFiles() {
     }
     if (!fs.existsSync(momentsFile)) {
         fs.writeFileSync(momentsFile, '[]', 'utf8');
+    }
+    if (!fs.existsSync(notificationsFile)) {
+        fs.writeFileSync(notificationsFile, '[]', 'utf8');
     }
 }
 
@@ -148,6 +152,30 @@ function getPartnerUid(authorId) {
     if (authorId === 'A') return 'B';
     if (authorId === 'B') return 'A';
     return '';
+}
+
+function pushNotification(recipientId, notification) {
+    if (!recipientId) return;
+    const notifications = readJsonArray(notificationsFile);
+    // 防刷屏覆盖机制：如果是日记动态(moment)，检查队列中是否已有同一天给该接收者的未消费通知
+    if (notification.type === 'moment') {
+        const existingIdx = notifications.findIndex(n =>
+            n.recipient_id === recipientId &&
+            n.type === 'moment' &&
+            n.date_str === notification.date_str
+        );
+        if (existingIdx !== -1) {
+            notifications[existingIdx] = {
+                ...notifications[existingIdx],
+                ...notification,
+                id: notifications[existingIdx].id
+            };
+            writeJsonArray(notificationsFile, notifications);
+            return;
+        }
+    }
+    notifications.push(notification);
+    writeJsonArray(notificationsFile, notifications);
 }
 
 function migrateMomentRecords() {
@@ -534,6 +562,18 @@ registerRoute('post', '/moments', (req, res) => {
     });
 
     writeJsonArray(momentsFile, moments);
+
+    const partnerUid = getPartnerUid(authorId);
+    pushNotification(partnerUid, {
+        id: makeMomentId(),
+        recipient_id: partnerUid,
+        type: 'moment',
+        title: `对方发布了 ${dateStr} 的日记`,
+        content: String(feeling || ''),
+        date_str: dateStr,
+        created_at: now
+    });
+
     return ok(res, { id });
 });
 
@@ -611,6 +651,45 @@ registerRoute('put', '/moments/:id', (req, res) => {
     next.created_at = original.created_at ? toIsoUtc8(original.created_at) : nowIsoUtc8();
     moments[index] = next;
     writeJsonArray(momentsFile, moments);
+
+    const partnerUid = getPartnerUid(next.author_id);
+    // 1. 检查新增评论通知（带前10字摘要）
+    const origComments = original.comments || [];
+    const newComments = next.comments || [];
+    if (newComments.length > origComments.length) {
+        const origIds = new Set(origComments.map(c => String(c.id)));
+        const addedComments = newComments.filter(c => !origIds.has(String(c.id)));
+        for (const c of addedComments) {
+            const commentAuthor = String(c.author_id || '');
+            const targetRecipient = getPartnerUid(commentAuthor);
+            const contentStr = String(c.content || '').trim();
+            const preview = contentStr.length > 7 ? `${contentStr.slice(0, 7)}...` : contentStr;
+            const title = `对方在 ${next.date_str} 的日记中评论：“${preview}”`;
+            pushNotification(targetRecipient, {
+                id: c.id || makeMomentId(),
+                recipient_id: targetRecipient,
+                type: 'momentComment',
+                title,
+                content: contentStr,
+                date_str: next.date_str,
+                created_at: c.created_at || nowIsoUtc8()
+            });
+        }
+    }
+
+    // 2. 检查日记本体更新（非纯评论变动，带防刷覆盖）
+    if (!isOnlyComments) {
+        pushNotification(partnerUid, {
+            id: makeMomentId(),
+            recipient_id: partnerUid,
+            type: 'moment',
+            title: `对方更新了 ${next.date_str} 的日记`,
+            content: String(next.feeling || ''),
+            date_str: next.date_str,
+            created_at: nowIsoUtc8()
+        });
+    }
+
     return res.json({ ok: true });
 });
 
@@ -670,6 +749,19 @@ registerRoute('post', '/topics', (req, res) => {
     };
     topics.push(topic);
     writeJsonArray(topicsFile, topics);
+
+    const partnerUid = getPartnerUid(author_id);
+    pushNotification(partnerUid, {
+        id: makeTopicId(),
+        recipient_id: partnerUid,
+        type: 'topicCreated',
+        title: `对方发起了新话题「${topic.title}」`,
+        content: '',
+        topic_id: topic.id,
+        topic_title: topic.title,
+        created_at: topic.created_at
+    });
+
     return ok(res, topic);
 });
 
@@ -693,7 +785,8 @@ registerRoute('post', '/topics/:id/posts', (req, res) => {
     if (!content || !String(content).trim()) return fail(res, 400, '内容不能为空');
 
     const topics = readJsonArray(topicsFile);
-    if (!topics.some(t => t.id === req.params.id)) return fail(res, 404, '话题不存在');
+    const topicObj = topics.find(t => t.id === req.params.id);
+    if (!topicObj) return fail(res, 404, '话题不存在');
 
     const posts = readJsonArray(postsFile);
     const post = {
@@ -705,6 +798,21 @@ registerRoute('post', '/topics/:id/posts', (req, res) => {
     };
     posts.push(post);
     writeJsonArray(postsFile, posts);
+
+    const partnerUid = getPartnerUid(author_id);
+    const contentStr = String(content).trim();
+    const preview = contentStr.length > 10 ? `${contentStr.slice(0, 10)}...` : contentStr;
+    pushNotification(partnerUid, {
+        id: post.id,
+        recipient_id: partnerUid,
+        type: 'topicPost',
+        title: `对方在话题「${topicObj.title}」中发布了帖子`,
+        content: contentStr,
+        topic_id: req.params.id,
+        topic_title: topicObj.title,
+        created_at: post.created_at
+    });
+
     return ok(res, post);
 });
 
@@ -716,6 +824,23 @@ registerRoute('delete', '/topics/:id/posts/:postId', (req, res) => {
     posts.splice(index, 1);
     writeJsonArray(postsFile, posts);
     return ok(res);
+});
+
+// ─── 动态通知队列 API（纯粹单次请求：取出并自毁） ───
+registerRoute('get', '/notifications', (req, res) => {
+    const { user_id: userId } = req.query;
+    if (!userId) return fail(res, 400, 'user_id 为必填参数');
+    const notifications = readJsonArray(notificationsFile);
+    const userNotifs = notifications
+        .filter(n => n.recipient_id === String(userId))
+        .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    // 立即从队列中清除取出的通知（读完自毁）
+    if (userNotifs.length > 0) {
+        const remaining = notifications.filter(n => n.recipient_id !== String(userId));
+        writeJsonArray(notificationsFile, remaining);
+    }
+    return ok(res, userNotifs);
 });
 
 const server = app.listen(PORT, () => {
