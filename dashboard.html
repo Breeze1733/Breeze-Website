@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Diptych · 双联日记数据看板</title>
+  <title>Diptych · 双联日记数据大屏</title>
   <link rel="icon" href="./favicon.ico">
-  <!-- Google Fonts & Chart.js & Confetti -->
+  <!-- Fonts & Chart.js & Confetti -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+SC:wght@300;400;500;600;700;900&display=swap" rel="stylesheet">
@@ -16,13 +16,13 @@
     :root {
       --font-family: 'Plus Jakarta Sans', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       --bg-base: #090d16;
-      --bg-surface: rgba(18, 24, 38, 0.72);
-      --bg-surface-hover: rgba(28, 36, 56, 0.85);
-      --bg-card: rgba(23, 31, 48, 0.65);
+      --bg-surface: rgba(18, 24, 40, 0.75);
+      --bg-surface-hover: rgba(28, 38, 62, 0.85);
+      --bg-card: rgba(23, 32, 54, 0.65);
       --border-color: rgba(255, 255, 255, 0.08);
       --border-highlight: rgba(255, 255, 255, 0.18);
       
-      --text-main: #f3f4f6;
+      --text-main: #f8fafc;
       --text-muted: #94a3b8;
       --text-sub: #64748b;
       
@@ -37,6 +37,7 @@
       --color-b-bg: rgba(244, 63, 94, 0.12);
       
       --color-together: #a855f7;
+      --color-together-light: #c084fc;
       --color-gold: #f59e0b;
       --color-emerald: #10b981;
       --color-sky: #0ea5e9;
@@ -110,8 +111,8 @@
     .ambient-orb {
       position: absolute;
       border-radius: 50%;
-      filter: blur(120px);
-      opacity: 0.26;
+      filter: blur(140px);
+      opacity: 0.22;
       animation: float 20s infinite alternate ease-in-out;
     }
     .orb-1 {
@@ -132,8 +133,8 @@
     .orb-3 {
       top: 40%;
       left: 40%;
-      width: 40vw;
-      height: 40vw;
+      width: 45vw;
+      height: 45vw;
       background: radial-gradient(circle, var(--color-together) 0%, transparent 70%);
       animation-delay: -14s;
     }
@@ -150,9 +151,12 @@
       max-width: 1440px;
       margin: 0 auto;
       padding: 24px 20px 80px;
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
     }
 
-    /* Glassmorphic Components */
+    /* Glassmorphic Cards */
     .glass-card {
       background: var(--bg-surface);
       backdrop-filter: blur(var(--blur-strength));
@@ -172,7 +176,6 @@
       justify-content: space-between;
       align-items: center;
       padding: 20px 28px;
-      margin-bottom: 24px;
       gap: 16px;
       flex-wrap: wrap;
     }
@@ -274,59 +277,27 @@
       padding: 8px;
       border-radius: var(--radius-md);
     }
-    .btn-primary {
-      background: linear-gradient(135deg, var(--color-a), var(--color-together));
-      color: #ffffff;
-      border: none;
-      box-shadow: 0 4px 14px rgba(99, 102, 241, 0.35);
-    }
-    .btn-primary:hover {
-      box-shadow: 0 6px 20px rgba(99, 102, 241, 0.5);
-    }
 
-    /* Tabs Navigation */
-    .tab-navigation {
+    /* Section Title */
+    .section-header {
       display: flex;
-      gap: 8px;
-      margin-bottom: 24px;
-      padding: 6px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-lg);
-      backdrop-filter: blur(var(--blur-strength));
-      overflow-x: auto;
-      scrollbar-width: none;
-    }
-    .tab-navigation::-webkit-scrollbar {
-      display: none;
-    }
-    .tab-btn {
-      flex: 1;
-      min-width: 140px;
-      display: inline-flex;
+      justify-content: space-between;
       align-items: center;
-      justify-content: center;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .section-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
       gap: 8px;
-      padding: 10px 18px;
-      font-size: 0.9rem;
-      font-weight: 600;
-      color: var(--text-muted);
-      background: transparent;
-      border: none;
-      border-radius: var(--radius-md);
-      cursor: pointer;
-      transition: all 0.25s ease;
-      font-family: inherit;
-      white-space: nowrap;
-    }
-    .tab-btn:hover {
       color: var(--text-main);
-      background: var(--border-color);
     }
-    .tab-btn.active {
-      color: #ffffff;
-      background: linear-gradient(135deg, var(--color-a), var(--color-together));
-      box-shadow: 0 4px 16px rgba(99, 102, 241, 0.35);
+    .section-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
     }
 
     /* KPI Grid */
@@ -334,7 +305,6 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
       gap: 16px;
-      margin-bottom: 24px;
     }
     .kpi-card {
       padding: 20px;
@@ -351,13 +321,13 @@
       right: 0;
       height: 3px;
       background: linear-gradient(90deg, transparent, var(--card-accent, var(--color-together)), transparent);
-      opacity: 0.7;
+      opacity: 0.8;
     }
     .kpi-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 10px;
     }
     .kpi-title {
       font-size: 0.85rem;
@@ -398,11 +368,10 @@
     /* Dual Profile Duel Card */
     .duel-section {
       display: grid;
-      grid-template-columns: 1fr 280px 1fr;
+      grid-template-columns: 1fr 320px 1fr;
       gap: 20px;
-      margin-bottom: 24px;
     }
-    @media (max-width: 1080px) {
+    @media (max-width: 1100px) {
       .duel-section {
         grid-template-columns: 1fr;
       }
@@ -432,55 +401,42 @@
       display: flex;
       align-items: center;
       gap: 16px;
-      margin-bottom: 20px;
-      padding-bottom: 18px;
+      margin-bottom: 18px;
+      padding-bottom: 16px;
       border-bottom: 1px solid var(--border-color);
     }
-    .avatar-wrapper {
-      position: relative;
-      width: 64px;
-      height: 64px;
-      border-radius: 50%;
-      padding: 3px;
-      background: linear-gradient(135deg, var(--theme-color), var(--theme-light));
-      box-shadow: 0 0 20px var(--theme-glow);
+    .user-badge-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      background: var(--theme-bg);
+      color: var(--theme-light);
+      border: 1px solid var(--theme-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px var(--theme-glow);
+      font-weight: 800;
+      font-size: 1.3rem;
       flex-shrink: 0;
     }
-    .avatar-img {
-      width: 100%;
-      height: 100%;
-      border-radius: 50%;
-      object-fit: cover;
-      background-color: #1e293b;
-    }
     .user-info h3 {
-      font-size: 1.3rem;
+      font-size: 1.35rem;
       font-weight: 700;
       display: flex;
       align-items: center;
       gap: 8px;
     }
-    .user-role-badge {
-      display: inline-block;
-      font-size: 0.75rem;
-      font-weight: 600;
-      padding: 2px 10px;
-      border-radius: var(--radius-full);
-      background: var(--theme-bg);
-      color: var(--theme-light);
-      border: 1px solid var(--theme-glow);
-    }
-    .user-tagline {
+    .user-records-count {
       font-size: 0.8rem;
       color: var(--text-sub);
-      margin-top: 2px;
     }
 
     .user-stats-grid {
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 12px;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
     .stat-box {
       background: var(--bg-card);
@@ -547,7 +503,7 @@
     }
 
     .harmony-meter {
-      margin-bottom: 16px;
+      margin-bottom: 14px;
     }
     .meter-label {
       display: flex;
@@ -595,23 +551,41 @@
     /* Heatmap Section */
     .heatmap-section {
       padding: 24px;
-      margin-bottom: 24px;
     }
-    .section-header {
+    .heatmap-header-controls {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      margin-bottom: 18px;
-      flex-wrap: wrap;
       gap: 12px;
+      flex-wrap: wrap;
     }
-    .section-title {
-      font-size: 1.15rem;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    .year-btn-group {
+      display: inline-flex;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 3px;
+      gap: 4px;
     }
+    .year-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      padding: 4px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .year-btn:hover {
+      color: var(--text-main);
+    }
+    .year-btn.active {
+      background: var(--color-together);
+      color: #ffffff;
+      box-shadow: 0 2px 8px rgba(168, 85, 247, 0.35);
+    }
+
     .heatmap-legend {
       display: flex;
       align-items: center;
@@ -645,7 +619,7 @@
       grid-auto-flow: column;
       grid-auto-columns: 15px;
       gap: 5px;
-      min-width: 800px;
+      min-width: 820px;
     }
     .heatmap-cell {
       width: 15px;
@@ -657,7 +631,13 @@
       transition: transform 0.15s ease, border-color 0.15s ease;
       position: relative;
     }
-    .heatmap-cell:hover {
+    .heatmap-cell.empty-pad {
+      background: transparent;
+      border: none;
+      cursor: default;
+      pointer-events: none;
+    }
+    .heatmap-cell:hover:not(.empty-pad) {
       transform: scale(1.35);
       z-index: 10;
       border-color: #ffffff;
@@ -677,48 +657,7 @@
       border: none;
     }
 
-    /* Keyword Cloud & Emotional Tags */
-    .wordcloud-card {
-      padding: 24px;
-      margin-bottom: 24px;
-    }
-    .tags-cloud-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 14px;
-    }
-    .word-tag {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 6px 14px;
-      border-radius: var(--radius-full);
-      font-size: 0.85rem;
-      font-weight: 600;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      cursor: pointer;
-      transition: all 0.2s ease;
-    }
-    .word-tag:hover {
-      transform: translateY(-2px);
-      border-color: var(--color-together);
-      background: rgba(168, 85, 247, 0.15);
-      color: #ffffff;
-    }
-    .word-tag .tag-count {
-      font-size: 0.75rem;
-      padding: 2px 6px;
-      background: rgba(255, 255, 255, 0.1);
-      border-radius: var(--radius-full);
-    }
-    .tag-a { border-color: rgba(99, 102, 241, 0.3); color: var(--color-a-light); }
-    .tag-b { border-color: rgba(244, 63, 94, 0.3); color: var(--color-b-light); }
-    .tag-both { border-color: rgba(168, 85, 247, 0.3); color: var(--color-together); }
-
-    /* Tooltip */
+    /* Custom Tooltip */
     .custom-tooltip {
       position: fixed;
       background: rgba(15, 23, 42, 0.95);
@@ -733,33 +672,37 @@
       backdrop-filter: blur(10px);
       max-width: 280px;
       display: none;
+      line-height: 1.5;
     }
 
-    /* Charts Grid */
-    .charts-grid {
+    /* Charts Layout */
+    .charts-row-2 {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(450px, 1fr));
+      grid-template-columns: 1fr 1fr;
       gap: 20px;
-      margin-bottom: 24px;
     }
-    @media (max-width: 600px) {
-      .charts-grid {
+    @media (max-width: 900px) {
+      .charts-row-2 {
         grid-template-columns: 1fr;
       }
     }
+
+    .charts-row-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+
     .chart-card {
       padding: 24px;
       display: flex;
       flex-direction: column;
     }
-    .chart-card.full-width {
-      grid-column: 1 / -1;
-    }
     .chart-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
     .chart-title {
       font-size: 1rem;
@@ -770,303 +713,36 @@
     }
     .chart-container {
       position: relative;
-      height: 320px;
+      height: 300px;
       width: 100%;
     }
 
-    /* Dual-Pane Time Machine Explorer */
-    .time-machine-section {
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-    .tm-toolbar {
-      padding: 16px 20px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      flex-wrap: wrap;
-      gap: 14px;
-    }
-    .tm-date-controls {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .tm-date-display {
-      font-size: 1.1rem;
-      font-weight: 700;
-      color: var(--text-main);
-      padding: 6px 14px;
-      background: var(--bg-card);
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border-color);
-      min-width: 150px;
-      text-align: center;
-    }
-    .tm-search-box {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 6px 12px;
-      min-width: 240px;
-    }
-    .tm-search-box input {
-      background: transparent;
-      border: none;
-      outline: none;
-      color: var(--text-main);
-      font-size: 0.85rem;
-      font-family: inherit;
-      width: 100%;
-    }
-    .tm-search-box input::placeholder {
-      color: var(--text-sub);
-    }
-    .tm-filter-select {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      color: var(--text-main);
-      padding: 8px 12px;
-      border-radius: var(--radius-md);
-      font-size: 0.85rem;
-      font-family: inherit;
-      outline: none;
-      cursor: pointer;
-    }
-
-    .dual-pane-view {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
-    }
-    @media (max-width: 900px) {
-      .dual-pane-view {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    .moment-card {
+    /* Monthly Breakdown Table */
+    .table-card {
       padding: 24px;
-      display: flex;
-      flex-direction: column;
-      min-height: 400px;
-      position: relative;
+      overflow-x: auto;
     }
-    .moment-card.moment-a {
-      border-top: 4px solid var(--color-a);
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: left;
+      margin-top: 12px;
     }
-    .moment-card.moment-b {
-      border-top: 4px solid var(--color-b);
-    }
-
-    .moment-card-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-      padding-bottom: 14px;
+    .data-table th {
+      padding: 12px 16px;
+      background: var(--bg-card);
+      color: var(--text-muted);
+      font-weight: 600;
       border-bottom: 1px solid var(--border-color);
     }
-    .moment-author {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .moment-author-avatar {
-      width: 44px;
-      height: 44px;
-      border-radius: 50%;
-      object-fit: cover;
-    }
-    .moment-author-info h4 {
-      font-size: 1rem;
-      font-weight: 700;
-    }
-    .moment-time {
-      font-size: 0.75rem;
-      color: var(--text-sub);
-    }
-
-    .mood-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      padding: 4px 12px;
-      border-radius: var(--radius-full);
-      font-size: 0.8rem;
-      font-weight: 700;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-    }
-    .mood-pill.mood-high { color: #10b981; border-color: rgba(16, 185, 129, 0.3); background: rgba(16, 185, 129, 0.1); }
-    .mood-pill.mood-mid { color: #f59e0b; border-color: rgba(245, 158, 11, 0.3); background: rgba(245, 158, 11, 0.1); }
-    .mood-pill.mood-low { color: #f43f5e; border-color: rgba(244, 63, 94, 0.3); background: rgba(244, 63, 94, 0.1); }
-
-    .moment-content {
-      font-size: 0.95rem;
-      line-height: 1.75;
+    .data-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-color);
       color: var(--text-main);
-      white-space: pre-wrap;
-      margin-bottom: 18px;
-      word-break: break-word;
     }
-
-    .moment-gallery {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-      gap: 8px;
-      margin-bottom: 18px;
-    }
-    .gallery-img-thumb {
-      width: 100%;
-      aspect-ratio: 1 / 1;
-      border-radius: var(--radius-sm);
-      object-fit: cover;
-      cursor: pointer;
-      transition: transform 0.2s ease;
-      background-color: var(--bg-card);
-      border: 1px solid var(--border-color);
-    }
-    .gallery-img-thumb:hover {
-      transform: scale(1.05);
-      border-color: var(--border-highlight);
-    }
-
-    .moment-comments {
-      margin-top: auto;
-      padding-top: 14px;
-      border-top: 1px solid var(--border-color);
-    }
-    .comment-tree-title {
-      font-size: 0.8rem;
-      font-weight: 700;
-      color: var(--text-muted);
-      margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .comment-item {
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      border-radius: var(--radius-md);
-      padding: 10px 12px;
-      margin-bottom: 8px;
-      font-size: 0.85rem;
-    }
-    .comment-author-badge {
-      font-weight: 700;
-      font-size: 0.75rem;
-      margin-right: 6px;
-    }
-    .author-a-text { color: var(--color-a-light); }
-    .author-b-text { color: var(--color-b-light); }
-    .comment-content-text {
-      color: var(--text-main);
-      margin-top: 2px;
-      white-space: pre-wrap;
-    }
-
-    .empty-moment-placeholder {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 60px 20px;
-      color: var(--text-sub);
-      text-align: center;
-    }
-
-    /* Topic Square */
-    .topics-grid {
-      display: grid;
-      grid-template-columns: 320px 1fr;
-      gap: 20px;
-    }
-    @media (max-width: 860px) {
-      .topics-grid {
-        grid-template-columns: 1fr;
-      }
-    }
-    .topic-list-pane {
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-    }
-    .topic-item-card {
-      padding: 16px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      border: 1px solid var(--border-color);
-    }
-    .topic-item-card:hover {
+    .data-table tr:hover td {
       background: var(--bg-surface-hover);
-      border-color: var(--border-highlight);
-    }
-    .topic-item-card.active {
-      border-color: var(--color-together);
-      background: rgba(168, 85, 247, 0.1);
-    }
-    .topic-item-title {
-      font-size: 0.95rem;
-      font-weight: 700;
-      margin-bottom: 6px;
-      color: var(--text-main);
-    }
-    .topic-meta-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.75rem;
-      color: var(--text-sub);
-    }
-
-    .topic-detail-pane {
-      padding: 24px;
-      display: flex;
-      flex-direction: column;
-      min-height: 500px;
-    }
-    .post-bubble {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 16px;
-    }
-    .post-bubble.post-author-a {
-      flex-direction: row;
-    }
-    .post-bubble.post-author-b {
-      flex-direction: row-reverse;
-    }
-    .post-avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      object-fit: cover;
-      flex-shrink: 0;
-    }
-    .post-body {
-      max-width: 80%;
-      background: var(--bg-card);
-      border: 1px solid var(--border-color);
-      padding: 12px 16px;
-      border-radius: var(--radius-lg);
-      font-size: 0.9rem;
-      line-height: 1.7;
-      white-space: pre-wrap;
-    }
-    .post-bubble.post-author-a .post-body {
-      border-top-left-radius: 4px;
-      border-color: rgba(99, 102, 241, 0.3);
-      background: rgba(99, 102, 241, 0.08);
-    }
-    .post-bubble.post-author-b .post-body {
-      border-top-right-radius: 4px;
-      border-color: rgba(244, 63, 94, 0.3);
-      background: rgba(244, 63, 94, 0.08);
     }
 
     /* Milestones & Badges */
@@ -1074,7 +750,6 @@
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 16px;
-      margin-bottom: 24px;
     }
     .badge-card {
       padding: 20px;
@@ -1096,8 +771,8 @@
       justify-content: center;
       font-size: 1.5rem;
       flex-shrink: 0;
-      background: var(--badge-bg, rgba(245, 158, 11, 0.15));
-      border: 1px solid var(--badge-border, rgba(245, 158, 11, 0.3));
+      background: rgba(245, 158, 11, 0.15);
+      border: 1px solid rgba(245, 158, 11, 0.3);
     }
     .badge-content h4 {
       font-size: 0.95rem;
@@ -1107,91 +782,38 @@
     .badge-content p {
       font-size: 0.8rem;
       color: var(--text-muted);
+      line-height: 1.5;
     }
 
-    /* Modal / Lightbox */
-    .modal-overlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background: rgba(0, 0, 0, 0.85);
-      backdrop-filter: blur(12px);
-      z-index: 10000;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
+    .timeline-card {
+      padding: 24px;
     }
-    .lightbox-content {
-      max-width: 90vw;
-      max-height: 85vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      position: relative;
-    }
-    .lightbox-img {
-      max-width: 100%;
-      max-height: 75vh;
-      border-radius: var(--radius-md);
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.8);
-      object-fit: contain;
-    }
-    .lightbox-nav {
+    .timeline-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px;
       margin-top: 14px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      color: #ffffff;
-      font-size: 0.9rem;
     }
-    .modal-close-btn {
-      position: absolute;
-      top: -40px;
-      right: 0;
-      background: transparent;
-      border: none;
-      color: #ffffff;
-      font-size: 1.5rem;
-      cursor: pointer;
-    }
-
-    /* File Upload Modal */
-    .upload-modal-box {
-      width: min(500px, 90vw);
-      padding: 28px;
-      background: var(--bg-surface);
-      border: 1px solid var(--border-highlight);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-lg);
-      backdrop-filter: blur(20px);
-    }
-    .drop-zone {
-      border: 2px dashed var(--border-color);
+    .timeline-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
       border-radius: var(--radius-md);
-      padding: 30px 20px;
-      text-align: center;
-      color: var(--text-muted);
-      cursor: pointer;
-      transition: all 0.2s ease;
-      margin: 16px 0;
+      padding: 14px 16px;
+      font-size: 0.85rem;
+      line-height: 1.6;
     }
-    .drop-zone:hover, .drop-zone.dragover {
-      border-color: var(--color-together);
-      background: rgba(168, 85, 247, 0.05);
-      color: var(--text-main);
+    .timeline-item strong {
+      color: var(--color-together-light);
     }
 
     /* Utility */
     .hidden { display: none !important; }
-    .flex-center { display: flex; align-items: center; justify-content: center; }
 
     /* Mobile Responsive Adjustments */
     @media (max-width: 768px) {
       .app-container {
         padding: 16px 12px 60px;
+        gap: 16px;
       }
       .header {
         padding: 16px;
@@ -1205,7 +827,7 @@
       .user-stats-grid {
         grid-template-columns: 1fr;
       }
-      .charts-grid {
+      .charts-row-2, .charts-row-3 {
         grid-template-columns: 1fr;
       }
     }
@@ -1220,10 +842,10 @@
     <div class="ambient-orb orb-3"></div>
   </div>
 
-  <!-- Main Container -->
+  <!-- Main Dashboard Container -->
   <div class="app-container">
 
-    <!-- Header -->
+    <!-- 1. Header -->
     <header class="header glass-card">
       <div class="brand-section">
         <div class="brand-logo">
@@ -1235,25 +857,20 @@
           </svg>
         </div>
         <div class="brand-text">
-          <h1>Diptych · 双联日记看板</h1>
-          <p>双联画，各自的视角，共同的日子</p>
+          <h1>Diptych · 双联日记数据大屏</h1>
+          <p id="header-subtitle">双人日记多维统计全景</p>
         </div>
       </div>
 
       <div class="header-actions">
         <div class="status-pill" id="live-status-badge">
           <div class="status-dot"></div>
-          <span id="live-status-text">实时计算完毕</span>
+          <span id="live-status-text">数据分析就绪</span>
         </div>
 
-        <button class="btn" id="btn-refresh" title="重新计算并刷新数据">
+        <button class="btn" id="btn-refresh" title="重新分析数据">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
-          刷新
-        </button>
-
-        <button class="btn" id="btn-open-upload" title="导入或切换自定义 JSON 数据">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          数据源
+          重新分析
         </button>
 
         <button class="btn btn-icon" id="btn-confetti" title="撒花庆祝！">
@@ -1267,580 +884,399 @@
       </div>
     </header>
 
-    <!-- Tab Navigation -->
-    <nav class="tab-navigation">
-      <button class="tab-btn active" data-tab="tab-overview">
-        📊 概览大屏
-      </button>
-      <button class="tab-btn" data-tab="tab-charts">
-        📈 趋势与作息
-      </button>
-      <button class="tab-btn" data-tab="tab-timemachine">
-        📖 双联时光机
-      </button>
-      <button class="tab-btn" data-tab="tab-topics">
-        💬 话题广场
-      </button>
-      <button class="tab-btn" data-tab="tab-badges">
-        🏆 默契成就
-      </button>
-    </nav>
-
-    <!-- ==================== TAB 1: OVERVIEW ==================== -->
-    <div id="tab-overview" class="tab-content-pane">
-      
-      <!-- Top KPI Strip (6 Cards) -->
-      <div class="kpi-grid">
-        <div class="glass-card kpi-card" style="--card-accent: var(--color-together);">
-          <div class="kpi-header">
-            <span class="kpi-title">共记时光</span>
-            <div class="kpi-icon-box" style="--icon-bg: rgba(168, 85, 247, 0.15); --icon-color: var(--color-together);">
-              📅
-            </div>
+    <!-- 2. KPI Top Summary Strip (6 Metric Tiles) -->
+    <div class="kpi-grid">
+      <div class="glass-card kpi-card" style="--card-accent: var(--color-together);">
+        <div class="kpi-header">
+          <span class="kpi-title">共记天数 / 篇数</span>
+          <div class="kpi-icon-box" style="--icon-bg: rgba(168, 85, 247, 0.15); --icon-color: var(--color-together);">
+            📅
           </div>
-          <div class="kpi-value" id="kpi-days">0</div>
-          <div class="kpi-sub">双人共记 <span class="highlight" id="kpi-both-days">0</span> 天 · 独记 <span id="kpi-single-days">0</span> 天</div>
+        </div>
+        <div class="kpi-value" id="kpi-days">0</div>
+        <div class="kpi-sub">双人同写 <span class="highlight" id="kpi-both-days">0</span> 天 · 单人 <span id="kpi-single-days">0</span> 天</div>
+      </div>
+
+      <div class="glass-card kpi-card" style="--card-accent: var(--color-a);">
+        <div class="kpi-header">
+          <span class="kpi-title">累计合著字数</span>
+          <div class="kpi-icon-box" style="--icon-bg: var(--color-a-bg); --icon-color: var(--color-a-light);">
+            ✍️
+          </div>
+        </div>
+        <div class="kpi-value" id="kpi-chars">0</div>
+        <div class="kpi-sub">日均合写 <span class="highlight" id="kpi-daily-chars">0</span> 字 · 篇均 <span id="kpi-avg-chars">0</span> 字</div>
+      </div>
+
+      <div class="glass-card kpi-card" style="--card-accent: var(--color-b);">
+        <div class="kpi-header">
+          <span class="kpi-title">上传图片总量</span>
+          <div class="kpi-icon-box" style="--icon-bg: var(--color-b-bg); --icon-color: var(--color-b-light);">
+            📸
+          </div>
+        </div>
+        <div class="kpi-value" id="kpi-photos">0</div>
+        <div class="kpi-sub">日均传图 <span class="highlight" id="kpi-daily-photos">0</span> 张 · 篇均 <span id="kpi-avg-photos">0</span> 张</div>
+      </div>
+
+      <div class="glass-card kpi-card" style="--card-accent: #ef4444;">
+        <div class="kpi-header">
+          <span class="kpi-title">巅峰连续打卡</span>
+          <div class="kpi-icon-box" style="--icon-bg: rgba(239, 68, 68, 0.15); --icon-color: #ef4444;">
+            🔥
+          </div>
+        </div>
+        <div class="kpi-value" id="kpi-streak">0</div>
+        <div class="kpi-sub"><span id="kpi-streak-range" class="highlight">0 天连击</span></div>
+      </div>
+
+      <div class="glass-card kpi-card" style="--card-accent: var(--color-emerald);">
+        <div class="kpi-header">
+          <span class="kpi-title">综合心情指数</span>
+          <div class="kpi-icon-box" style="--icon-bg: rgba(16, 185, 129, 0.15); --icon-color: var(--color-emerald);">
+            💖
+          </div>
+        </div>
+        <div class="kpi-value" id="kpi-mood-avg">0.0</div>
+        <div class="kpi-sub">双方同天≥8分高甜日 <span class="highlight" id="kpi-high-mood-days">0</span> 天</div>
+      </div>
+
+      <div class="glass-card kpi-card" style="--card-accent: var(--color-gold);">
+        <div class="kpi-header">
+          <span class="kpi-title">互动留言总量</span>
+          <div class="kpi-icon-box" style="--icon-bg: rgba(245, 158, 11, 0.15); --icon-color: var(--color-gold);">
+            💬
+          </div>
+        </div>
+        <div class="kpi-value" id="kpi-comments">0</div>
+        <div class="kpi-sub">篇均留言 <span class="highlight" id="kpi-avg-comments">0</span> 条 · 日均 <span id="kpi-daily-comments">0</span> 条</div>
+      </div>
+    </div>
+
+    <!-- 3. Dual Persona & Harmony Balance Matrix -->
+    <div class="duel-section">
+      <!-- User A Profile Card -->
+      <div class="glass-card user-card user-a">
+        <div class="user-card-header">
+          <div class="user-badge-icon">A</div>
+          <div class="user-info">
+            <h3><span id="name-a">hyx</span></h3>
+            <div class="user-records-count" id="user-a-records-count">累计记录 0 天 · 0 篇日记</div>
+          </div>
         </div>
 
-        <div class="glass-card kpi-card" style="--card-accent: var(--color-a);">
-          <div class="kpi-header">
-            <span class="kpi-title">合著笔墨</span>
-            <div class="kpi-icon-box" style="--icon-bg: var(--color-a-bg); --icon-color: var(--color-a-light);">
-              ✍️
-            </div>
+        <div class="user-stats-grid">
+          <div class="stat-box">
+            <div class="stat-label">✍️ 累计写字</div>
+            <div class="stat-val" id="user-a-chars">0</div>
+            <div class="stat-sub">篇均 <span id="user-a-avg-chars">0</span> 字</div>
           </div>
-          <div class="kpi-value" id="kpi-chars">0</div>
-          <div class="kpi-sub">日均合写 <span class="highlight" id="kpi-daily-chars">0</span> 字 · 篇均 <span id="kpi-avg-chars">0</span> 字</div>
+          <div class="stat-box">
+            <div class="stat-label">📸 上传图片</div>
+            <div class="stat-val" id="user-a-photos">0 <span class="stat-sub">张</span></div>
+            <div class="stat-sub">篇均 <span id="user-a-avg-photos">0</span> 张</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">🌈 平均心情分</div>
+            <div class="stat-val" id="user-a-mood">0.0 <span class="stat-sub">/ 10</span></div>
+            <div class="stat-sub">标准差 ±<span id="user-a-mood-std">0.00</span></div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">⚡ 谁先发布日记</div>
+            <div class="stat-val" id="user-a-first-post">0 <span class="stat-sub">天率先</span></div>
+            <div class="stat-sub">占双人同写日 <span id="user-a-first-pct">0%</span></div>
+          </div>
         </div>
 
-        <div class="glass-card kpi-card" style="--card-accent: var(--color-b);">
-          <div class="kpi-header">
-            <span class="kpi-title">光影定格</span>
-            <div class="kpi-icon-box" style="--icon-bg: var(--color-b-bg); --icon-color: var(--color-b-light);">
-              📸
-            </div>
-          </div>
-          <div class="kpi-value" id="kpi-photos">0</div>
-          <div class="kpi-sub">日均定格 <span class="highlight" id="kpi-daily-photos">0</span> 张 · 配图率 <span id="kpi-photo-rate">0%</span></div>
-        </div>
-
-        <div class="glass-card kpi-card" style="--card-accent: var(--color-gold);">
-          <div class="kpi-header">
-            <span class="kpi-title">双向互动</span>
-            <div class="kpi-icon-box" style="--icon-bg: rgba(245, 158, 11, 0.15); --icon-color: var(--color-gold);">
-              💬
-            </div>
-          </div>
-          <div class="kpi-value" id="kpi-comments">0</div>
-          <div class="kpi-sub">日均留言 <span class="highlight" id="kpi-daily-comments">0</span> 条 · 篇均 <span id="kpi-avg-comments">0</span> 条</div>
-        </div>
-
-        <div class="glass-card kpi-card" style="--card-accent: #ef4444;">
-          <div class="kpi-header">
-            <span class="kpi-title">巅峰连更</span>
-            <div class="kpi-icon-box" style="--icon-bg: rgba(239, 68, 68, 0.15); --icon-color: #ef4444;">
-              🔥
-            </div>
-          </div>
-          <div class="kpi-value" id="kpi-streak">0</div>
-          <div class="kpi-sub">最长连击 <span class="highlight" id="kpi-streak-desc">48 天不间断</span></div>
-        </div>
-
-        <div class="glass-card kpi-card" style="--card-accent: var(--color-emerald);">
-          <div class="kpi-header">
-            <span class="kpi-title">心晴指数</span>
-            <div class="kpi-icon-box" style="--icon-bg: rgba(16, 185, 129, 0.15); --icon-color: var(--color-emerald);">
-              💖
-            </div>
-          </div>
-          <div class="kpi-value" id="kpi-mood-avg">0.0</div>
-          <div class="kpi-sub">高甜满分共鸣 <span class="highlight" id="kpi-high-mood-days">0</span> 天</div>
+        <div class="user-traits">
+          <div class="trait-pill">✍️ 篇均字数: <span id="user-a-trait-chars">0 字/篇</span></div>
+          <div class="trait-pill">📸 篇均图片: <span id="user-a-trait-photos">0 张/篇</span></div>
+          <div class="trait-pill">📅 最常写作日: <span id="user-a-top-day">--</span></div>
         </div>
       </div>
 
-      <!-- User Side-by-Side Duel & Harmony Bar -->
-      <div class="duel-section">
-        <!-- User A Card -->
-        <div class="glass-card user-card user-a">
-          <div class="user-card-header">
-            <div class="avatar-wrapper">
-              <img class="avatar-img" id="avatar-a" src="backend/uploads/ms2rlxvn7sju9e.jpg" alt="hyx">
+      <!-- Center Harmony & Synergy Card -->
+      <div class="glass-card harmony-card">
+        <div>
+          <div class="harmony-title">✨ 双人默契与贡献比例</div>
+          <div class="harmony-subtitle">多维合著天平对比</div>
+        </div>
+
+        <div>
+          <div class="harmony-meter">
+            <div class="meter-label">
+              <span style="color: var(--color-a-light);">hyx <span id="ratio-chars-a">0%</span></span>
+              <span>总字数贡献</span>
+              <span style="color: var(--color-b-light);"><span id="ratio-chars-b">0%</span> cyc</span>
             </div>
-            <div class="user-info">
-              <h3><span id="name-a">hyx</span> <span class="user-role-badge">守护者</span></h3>
-              <p class="user-tagline">理智温柔 · 沉稳记录生活点滴</p>
+            <div class="meter-bar">
+              <div class="meter-segment-a" id="bar-chars-a" style="width: 50%;"></div>
+              <div class="meter-segment-b" id="bar-chars-b" style="width: 50%;"></div>
             </div>
           </div>
 
-          <div class="user-stats-grid">
-            <div class="stat-box">
-              <div class="stat-label">📝 记录天数 / 篇数</div>
-              <div class="stat-val" id="user-a-moments">49 <span class="stat-sub">天</span></div>
-              <div class="stat-sub">全勤率 94.2%</div>
+          <div class="harmony-meter">
+            <div class="meter-label">
+              <span style="color: var(--color-a-light);">hyx <span id="ratio-photos-a">0%</span></span>
+              <span>上传图片贡献</span>
+              <span style="color: var(--color-b-light);"><span id="ratio-photos-b">0%</span> cyc</span>
             </div>
-            <div class="stat-box">
-              <div class="stat-label">✍️ 累计字数</div>
-              <div class="stat-val" id="user-a-chars">21,527</div>
-              <div class="stat-sub">篇均 <span id="user-a-avg-chars">439</span> 字</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-label">📸 上传照片</div>
-              <div class="stat-val" id="user-a-photos">127 <span class="stat-sub">张</span></div>
-              <div class="stat-sub">篇均 <span id="user-a-avg-photos">2.6</span> 张</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-label">🌈 心情均分</div>
-              <div class="stat-val" id="user-a-mood">7.43 <span class="stat-sub">/ 10</span></div>
-              <div class="stat-sub">高分偏好 (8-10分 75%)</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-label">💬 送出评论</div>
-              <div class="stat-val" id="user-a-comments">222 <span class="stat-sub">条</span></div>
-              <div class="stat-sub">收到 <span id="user-a-comments-recv">178</span> 条</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-label">🌙 创作作息峰值</div>
-              <div class="stat-val" id="user-a-peak-time">23:00 - 01:00</div>
-              <div class="stat-sub">夜猫子指数 75.5%</div>
+            <div class="meter-bar">
+              <div class="meter-segment-a" id="bar-photos-a" style="width: 50%;"></div>
+              <div class="meter-segment-b" id="bar-photos-b" style="width: 50%;"></div>
             </div>
           </div>
 
-          <div class="user-traits">
-            <div class="trait-pill">🏆 单篇最长: <span id="user-a-max-chars">935 字</span></div>
-            <div class="trait-pill">🖼️ 单篇最多图: <span id="user-a-max-photos">9 张</span></div>
-            <div class="trait-pill">💡 发起话题: <span id="user-a-topics">2 个</span></div>
+          <div class="harmony-meter">
+            <div class="meter-label">
+              <span style="color: var(--color-a-light);">hyx <span id="ratio-avg-chars-a">0字</span></span>
+              <span>篇均产出比</span>
+              <span style="color: var(--color-b-light);"><span id="ratio-avg-chars-b">0字</span> cyc</span>
+            </div>
+            <div class="meter-bar">
+              <div class="meter-segment-a" id="bar-avg-chars-a" style="width: 50%;"></div>
+              <div class="meter-segment-b" id="bar-avg-chars-b" style="width: 50%;"></div>
+            </div>
           </div>
         </div>
 
-        <!-- Center Harmony & Synergy Card -->
-        <div class="glass-card harmony-card">
-          <div>
-            <div class="harmony-title">✨ 默契共鸣与互补</div>
-            <div class="harmony-subtitle">二人合著天平与互动比例</div>
-          </div>
-
-          <div>
-            <div class="harmony-meter">
-              <div class="meter-label">
-                <span style="color: var(--color-a-light);">hyx <span id="ratio-chars-a">39.7%</span></span>
-                <span>字数贡献</span>
-                <span style="color: var(--color-b-light);"><span id="ratio-chars-b">60.3%</span> cyc</span>
-              </div>
-              <div class="meter-bar">
-                <div class="meter-segment-a" id="bar-chars-a" style="width: 39.7%;"></div>
-                <div class="meter-segment-b" id="bar-chars-b" style="width: 60.3%;"></div>
-              </div>
-            </div>
-
-            <div class="harmony-meter">
-              <div class="meter-label">
-                <span style="color: var(--color-a-light);">hyx <span id="ratio-photos-a">23.4%</span></span>
-                <span>摄影图库</span>
-                <span style="color: var(--color-b-light);"><span id="ratio-photos-b">76.6%</span> cyc</span>
-              </div>
-              <div class="meter-bar">
-                <div class="meter-segment-a" id="bar-photos-a" style="width: 23.4%;"></div>
-                <div class="meter-segment-b" id="bar-photos-b" style="width: 76.6%;"></div>
-              </div>
-            </div>
-
-            <div class="harmony-meter">
-              <div class="meter-label">
-                <span style="color: var(--color-a-light);">hyx <span id="ratio-comments-a">52.7%</span></span>
-                <span>互动评论送出</span>
-                <span style="color: var(--color-b-light);"><span id="ratio-comments-b">47.3%</span> cyc</span>
-              </div>
-              <div class="meter-bar">
-                <div class="meter-segment-a" id="bar-comments-a" style="width: 52.7%;"></div>
-                <div class="meter-segment-b" id="bar-comments-b" style="width: 47.3%;"></div>
-              </div>
-            </div>
-          </div>
-
-          <div class="synergy-badge">
-            <div class="synergy-score" id="synergy-score-text">96.8%</div>
-            <div class="synergy-desc">双向奔赴默契度 · 极度均衡</div>
-          </div>
-        </div>
-
-        <!-- User B Card -->
-        <div class="glass-card user-card user-b">
-          <div class="user-card-header">
-            <div class="avatar-wrapper">
-              <img class="avatar-img" id="avatar-b" src="backend/uploads/1000057506.jpg" alt="cyc">
-            </div>
-            <div class="user-info">
-              <h3><span id="name-b">cyc</span> <span class="user-role-badge">记录官</span></h3>
-              <p class="user-tagline">灵动细腻 · 用文字与光影定格美好</p>
-            </div>
-          </div>
-
-          <div class="user-stats-grid">
-            <div class="stat-box">
-              <div class="stat-label">📝 记录天数 / 篇数</div>
-              <div class="stat-val" id="user-b-moments">49 <span class="stat-sub">天</span></div>
-              <div class="stat-sub">全勤率 94.2%</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-label">✍️ 累计字数</div>
-              <div class="stat-val" id="user-b-chars">32,640</div>
-              <div class="stat-sub">篇均 <span id="user-b-avg-chars">666</span> 字</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-label">📸 上传照片</div>
-              <div class="stat-val" id="user-b-photos">415 <span class="stat-sub">张</span></div>
-              <div class="stat-sub">篇均 <span id="user-b-avg-photos">8.5</span> 张</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-label">🌈 心情均分</div>
-              <div class="stat-val" id="user-b-mood">6.21 <span class="stat-sub">/ 10</span></div>
-              <div class="stat-sub">真实丰富 (4-7分 73%)</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-label">💬 送出评论</div>
-              <div class="stat-val" id="user-b-comments">199 <span class="stat-sub">条</span></div>
-              <div class="stat-sub">收到 <span id="user-b-comments-recv">243</span> 条</div>
-            </div>
-            <div class="stat-box">
-              <div class="stat-label">🌙 创作作息峰值</div>
-              <div class="stat-val" id="user-b-peak-time">23:00 - 01:00</div>
-              <div class="stat-sub">夜猫子指数 65.3%</div>
-            </div>
-          </div>
-
-          <div class="user-traits">
-            <div class="trait-pill">🏆 单篇最长: <span id="user-b-max-chars">1,850 字</span></div>
-            <div class="trait-pill">🖼️ 单篇最多图: <span id="user-b-max-photos">27 张</span></div>
-            <div class="trait-pill">💡 发起话题: <span id="user-b-topics">2 个</span></div>
-          </div>
+        <div class="synergy-badge">
+          <div class="synergy-score" id="synergy-score-text">0.0%</div>
+          <div class="synergy-desc">双方同天情绪同步率 (|分差| ≤ 1分: <span id="sync-days-count">0</span>天)</div>
         </div>
       </div>
 
-      <!-- Footprint Heatmap Calendar -->
-      <div class="glass-card heatmap-section">
-        <div class="section-header">
-          <div class="section-title">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-            2026 双联打卡足迹热力图
+      <!-- User B Profile Card -->
+      <div class="glass-card user-card user-b">
+        <div class="user-card-header">
+          <div class="user-badge-icon">B</div>
+          <div class="user-info">
+            <h3><span id="name-b">cyc</span></h3>
+            <div class="user-records-count" id="user-b-records-count">累计记录 0 天 · 0 篇日记</div>
+          </div>
+        </div>
+
+        <div class="user-stats-grid">
+          <div class="stat-box">
+            <div class="stat-label">✍️ 累计写字</div>
+            <div class="stat-val" id="user-b-chars">0</div>
+            <div class="stat-sub">篇均 <span id="user-b-avg-chars">0</span> 字</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">📸 上传图片</div>
+            <div class="stat-val" id="user-b-photos">0 <span class="stat-sub">张</span></div>
+            <div class="stat-sub">篇均 <span id="user-b-avg-photos">0</span> 张</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">🌈 平均心情分</div>
+            <div class="stat-val" id="user-b-mood">0.0 <span class="stat-sub">/ 10</span></div>
+            <div class="stat-sub">标准差 ±<span id="user-b-mood-std">0.00</span></div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-label">⚡ 谁先发布日记</div>
+            <div class="stat-val" id="user-b-first-post">0 <span class="stat-sub">天率先</span></div>
+            <div class="stat-sub">占双人同写日 <span id="user-b-first-pct">0%</span></div>
+          </div>
+        </div>
+
+        <div class="user-traits">
+          <div class="trait-pill">✍️ 篇均字数: <span id="user-b-trait-chars">0 字/篇</span></div>
+          <div class="trait-pill">📸 篇均图片: <span id="user-b-trait-photos">0 张/篇</span></div>
+          <div class="trait-pill">📅 最常写作日: <span id="user-b-top-day">--</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 4. Contribution Heatmap Grid (with Dynamic Year Switcher) -->
+    <div class="glass-card heatmap-section">
+      <div class="section-header">
+        <div class="section-title">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          双联打卡足迹热力图 (<span id="heatmap-active-year-title">2026</span>)
+        </div>
+
+        <div class="heatmap-header-controls">
+          <!-- Dynamic Year Selector -->
+          <div class="year-btn-group" id="heatmap-year-selector">
+            <!-- Generated dynamically -->
           </div>
 
           <div class="heatmap-legend">
-            <div class="legend-item"><div class="legend-box legend-both"></div> 双人同记 (<span id="legend-count-both">46</span>天)</div>
-            <div class="legend-item"><div class="legend-box legend-a"></div> 仅 hyx (<span id="legend-count-a">3</span>天)</div>
-            <div class="legend-item"><div class="legend-box legend-b"></div> 仅 cyc (<span id="legend-count-b">3</span>天)</div>
+            <div class="legend-item"><div class="legend-box legend-both"></div> 双人同记 (<span id="legend-count-both">0</span>天)</div>
+            <div class="legend-item"><div class="legend-box legend-a"></div> 仅 hyx (<span id="legend-count-a">0</span>天)</div>
+            <div class="legend-item"><div class="legend-box legend-b"></div> 仅 cyc (<span id="legend-count-b">0</span>天)</div>
             <div class="legend-item"><div class="legend-box legend-none"></div> 未记录</div>
           </div>
         </div>
-
-        <div class="heatmap-calendar-container">
-          <div class="heatmap-grid" id="heatmap-calendar-grid">
-            <!-- Generated dynamically -->
-          </div>
-        </div>
       </div>
 
-      <!-- Keyword Tags Cloud -->
-      <div class="glass-card wordcloud-card">
-        <div class="section-header">
-          <div class="section-title">
-            🏷️ 笔墨高频词与情感共鸣画像
-          </div>
-          <span style="font-size: 0.8rem; color: var(--text-muted);">点击关键词可一键直达相关时光</span>
-        </div>
-
-        <div class="tags-cloud-container" id="tags-cloud-container">
+      <div class="heatmap-calendar-container">
+        <div class="heatmap-grid" id="heatmap-calendar-grid">
           <!-- Generated dynamically -->
         </div>
       </div>
-
     </div>
 
-    <!-- ==================== TAB 2: CHARTS & INSIGHTS ==================== -->
-    <div id="tab-charts" class="tab-content-pane hidden">
-      <div class="charts-grid">
-        <!-- Chart 1: Word Count Dual Trend -->
-        <div class="glass-card chart-card full-width">
-          <div class="chart-header">
-            <div class="chart-title">
-              ✍️ 每日字数产出走势 (hyx vs cyc)
-            </div>
-            <span style="font-size: 0.8rem; color: var(--text-muted);">单日双人合著最高达 2,785 字</span>
+    <!-- 5. Main Trend Charts (2 Columns) -->
+    <div class="charts-row-2">
+      <!-- Chart 1: Words Timeline -->
+      <div class="glass-card chart-card">
+        <div class="chart-header">
+          <div class="chart-title">
+            ✍️ 每日字数产出走势对比
           </div>
-          <div class="chart-container" style="height: 360px;">
-            <canvas id="chart-words-timeline"></canvas>
-          </div>
+          <span class="section-desc">双人每日产出曲线</span>
         </div>
-
-        <!-- Chart 2: Mood Synergy Trend -->
-        <div class="glass-card chart-card full-width">
-          <div class="chart-header">
-            <div class="chart-title">
-              🌈 每日心情晴雨表与共鸣曲线 (1-10分)
-            </div>
-            <span style="font-size: 0.8rem; color: var(--text-muted);">记录双方喜怒哀乐的心灵共振</span>
-          </div>
-          <div class="chart-container" style="height: 320px;">
-            <canvas id="chart-moods-timeline"></canvas>
-          </div>
+        <div class="chart-container">
+          <canvas id="chart-words-timeline"></canvas>
         </div>
+      </div>
 
-        <!-- Chart 3: Photos Upload Density -->
-        <div class="glass-card chart-card">
-          <div class="chart-header">
-            <div class="chart-title">
-              📸 每日照片珍藏数量对比
-            </div>
+      <!-- Chart 2: Mood Timeline -->
+      <div class="glass-card chart-card">
+        <div class="chart-header">
+          <div class="chart-title">
+            🌈 每日心情晴雨表与共鸣走势 (1-10分)
           </div>
-          <div class="chart-container">
-            <canvas id="chart-photos-bar"></canvas>
-          </div>
+          <span class="section-desc">情绪波动与同日分差</span>
         </div>
-
-        <!-- Chart 4: 24-Hour Posting Radar -->
-        <div class="glass-card chart-card">
-          <div class="chart-header">
-            <div class="chart-title">
-              ⏰ 24小时创作时钟 (深夜夜猫子指数)
-            </div>
-          </div>
-          <div class="chart-container">
-            <canvas id="chart-hours-radar"></canvas>
-          </div>
-        </div>
-
-        <!-- Chart 5: Day of Week Breakdown -->
-        <div class="glass-card chart-card">
-          <div class="chart-header">
-            <div class="chart-title">
-              📅 星期活跃习惯分布 (周一至周日)
-            </div>
-          </div>
-          <div class="chart-container">
-            <canvas id="chart-weekdays-bar"></canvas>
-          </div>
-        </div>
-
-        <!-- Chart 6: Mood Distribution Histogram -->
-        <div class="glass-card chart-card">
-          <div class="chart-header">
-            <div class="chart-title">
-              🎭 心情评分频次分布 (1 - 10分)
-            </div>
-          </div>
-          <div class="chart-container">
-            <canvas id="chart-mood-dist"></canvas>
-          </div>
+        <div class="chart-container">
+          <canvas id="chart-moods-timeline"></canvas>
         </div>
       </div>
     </div>
 
-    <!-- ==================== TAB 3: DUAL TIME MACHINE ==================== -->
-    <div id="tab-timemachine" class="tab-content-pane hidden">
-      <div class="time-machine-section">
-        
-        <!-- Controls Bar -->
-        <div class="glass-card tm-toolbar">
-          <div class="tm-date-controls">
-            <button class="btn" id="tm-prev-day" title="前一天">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
-            </button>
-            
-            <div class="tm-date-display" id="tm-current-date-label">2026-08-20</div>
-
-            <button class="btn" id="tm-next-day" title="后一天">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
-            </button>
-
-            <button class="btn" id="tm-random-day" title="随机穿越一天">
-              🎲 随机
-            </button>
-          </div>
-
-          <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <select class="tm-filter-select" id="tm-category-filter" title="筛选类别">
-              <option value="all">📌 全部日期</option>
-              <option value="both">🟣 双人同写</option>
-              <option value="high-mood">💖 高甜心情 (≥8分)</option>
-              <option value="has-photos">📸 包含照片</option>
-              <option value="has-comments">💬 包含互动评论</option>
-            </select>
-
-            <div class="tm-search-box">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input type="text" id="tm-search-input" placeholder="搜索文字或评论关键词...">
-            </div>
-
-            <select class="tm-filter-select" id="tm-date-dropdown">
-              <!-- Dates options generated dynamically -->
-            </select>
+    <!-- 6. Distribution & Habit Charts (3 Columns) -->
+    <div class="charts-row-3">
+      <!-- Chart 3: 24-Hour Creation Clock -->
+      <div class="glass-card chart-card">
+        <div class="chart-header">
+          <div class="chart-title">
+            ⏰ 24小时创作时段分布
           </div>
         </div>
-
-        <!-- Dual Side-by-side Moment Pane -->
-        <div class="dual-pane-view">
-          
-          <!-- User A Moment -->
-          <div class="glass-card moment-card moment-a" id="pane-moment-a">
-            <div class="moment-card-header">
-              <div class="moment-author">
-                <img class="moment-author-avatar" id="tm-avatar-a" src="backend/uploads/ms2rlxvn7sju9e.jpg" alt="hyx">
-                <div class="moment-author-info">
-                  <h4 id="tm-name-a">hyx</h4>
-                  <span class="moment-time" id="tm-time-a">--</span>
-                </div>
-              </div>
-              <div id="tm-mood-badge-a" class="mood-pill mood-high">
-                💖 8 分
-              </div>
-            </div>
-
-            <div class="moment-content" id="tm-content-a">
-              <!-- Feeling text -->
-            </div>
-
-            <div class="moment-gallery" id="tm-gallery-a">
-              <!-- Image thumbnails -->
-            </div>
-
-            <div class="moment-comments" id="tm-comments-box-a">
-              <div class="comment-tree-title">
-                💬 互动评论 (<span id="tm-comment-count-a">0</span>)
-              </div>
-              <div id="tm-comments-list-a"></div>
-            </div>
-          </div>
-
-          <!-- User B Moment -->
-          <div class="glass-card moment-card moment-b" id="pane-moment-b">
-            <div class="moment-card-header">
-              <div class="moment-author">
-                <img class="moment-author-avatar" id="tm-avatar-b" src="backend/uploads/1000057506.jpg" alt="cyc">
-                <div class="moment-author-info">
-                  <h4 id="tm-name-b">cyc</h4>
-                  <span class="moment-time" id="tm-time-b">--</span>
-                </div>
-              </div>
-              <div id="tm-mood-badge-b" class="mood-pill mood-mid">
-                🌿 6 分
-              </div>
-            </div>
-
-            <div class="moment-content" id="tm-content-b">
-              <!-- Feeling text -->
-            </div>
-
-            <div class="moment-gallery" id="tm-gallery-b">
-              <!-- Image thumbnails -->
-            </div>
-
-            <div class="moment-comments" id="tm-comments-box-b">
-              <div class="comment-tree-title">
-                💬 互动评论 (<span id="tm-comment-count-b">0</span>)
-              </div>
-              <div id="tm-comments-list-b"></div>
-            </div>
-          </div>
-
+        <div class="chart-container">
+          <canvas id="chart-hours-radar"></canvas>
         </div>
+      </div>
 
+      <!-- Chart 4: Weekdays Bar -->
+      <div class="glass-card chart-card">
+        <div class="chart-header">
+          <div class="chart-title">
+            📅 星期活跃度分布
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-weekdays-bar"></canvas>
+        </div>
+      </div>
+
+      <!-- Chart 5: Photos Bar -->
+      <div class="glass-card chart-card">
+        <div class="chart-header">
+          <div class="chart-title">
+            📸 每日上传图片数量
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-photos-bar"></canvas>
+        </div>
       </div>
     </div>
 
-    <!-- ==================== TAB 4: TOPICS ==================== -->
-    <div id="tab-topics" class="tab-content-pane hidden">
-      <div class="topics-grid">
-        
-        <!-- Left Topic List -->
-        <div class="topic-list-pane">
-          <div class="section-title" style="margin-bottom: 12px;">
-            💬 话题广场 (<span id="topics-total-count">4</span>)
-          </div>
-          <div id="topics-list-container">
-            <!-- Generated dynamically -->
+    <!-- 7. Structure & Breakdown Charts (3 Columns) -->
+    <div class="charts-row-3">
+      <!-- Chart 6: Mood Distribution Histogram -->
+      <div class="glass-card chart-card">
+        <div class="chart-header">
+          <div class="chart-title">
+            🎭 心情打分频次分布 (1-10分)
           </div>
         </div>
+        <div class="chart-container">
+          <canvas id="chart-mood-dist"></canvas>
+        </div>
+      </div>
 
-        <!-- Right Topic Posts Thread -->
-        <div class="glass-card topic-detail-pane" id="topic-thread-pane">
-          <div style="padding-bottom: 16px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color);">
-            <h2 id="active-topic-title" style="font-size: 1.3rem; margin-bottom: 6px;">话题标题</h2>
-            <div style="font-size: 0.8rem; color: var(--text-muted);" id="active-topic-meta">发起人 · 日期 · 发帖总数</div>
-          </div>
-
-          <div id="topic-posts-container" style="flex: 1;">
-            <!-- Messages thread -->
+      <!-- Chart 7: Word Length Brackets -->
+      <div class="glass-card chart-card">
+        <div class="chart-header">
+          <div class="chart-title">
+            📝 日记篇幅区间分布
           </div>
         </div>
+        <div class="chart-container">
+          <canvas id="chart-length-brackets"></canvas>
+        </div>
+      </div>
 
+      <!-- Chart 8: Photo Brackets -->
+      <div class="glass-card chart-card">
+        <div class="chart-header">
+          <div class="chart-title">
+            🖼️ 单篇配图梯度分布
+          </div>
+        </div>
+        <div class="chart-container">
+          <canvas id="chart-photo-brackets"></canvas>
+        </div>
       </div>
     </div>
 
-    <!-- ==================== TAB 5: BADGES & MILESTONES ==================== -->
-    <div id="tab-badges" class="tab-content-pane hidden">
-      
-      <div class="section-title" style="margin-bottom: 18px;">
-        🏆 两人专属默契成就榜
-      </div>
-
-      <div class="milestones-grid" id="milestones-container">
-        <!-- Badges generated dynamically -->
-      </div>
-
-      <div class="glass-card" style="padding: 24px; margin-top: 24px;">
-        <div class="section-title" style="margin-bottom: 16px;">
-          📜 双联回忆里程碑
+    <!-- 8. Monthly Breakdown Table -->
+    <div class="glass-card table-card">
+      <div class="section-header">
+        <div class="section-title">
+          📊 月度合著演进与统计明细
         </div>
-        <div id="milestones-timeline-list" style="display: flex; flex-direction: column; gap: 14px;">
-          <!-- Milestones timeline -->
-        </div>
+        <span class="section-desc">各月份动态汇总对比</span>
       </div>
 
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>月份</th>
+            <th>记录篇数</th>
+            <th>hyx 字数 (篇均)</th>
+            <th>cyc 字数 (篇均)</th>
+            <th>合著总字数</th>
+            <th>上传图片 (hyx / cyc)</th>
+            <th>平均心情 (hyx / cyc)</th>
+          </tr>
+        </thead>
+        <tbody id="monthly-table-body">
+          <!-- Generated dynamically -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 9. Dynamic Records & Achievements Section -->
+    <div class="section-header" style="margin-top: 10px;">
+      <div class="section-title">
+        🏆 统计大盘与核心数据
+      </div>
+      <span class="section-desc">从当前数据实时汇总的统计大盘</span>
+    </div>
+
+    <div class="milestones-grid" id="milestones-container">
+      <!-- Badges generated dynamically -->
+    </div>
+
+    <!-- 10. Key History Milestones Timeline (Dynamic) -->
+    <div class="glass-card timeline-card">
+      <div class="section-title" style="margin-bottom: 8px;">
+        📜 关键数据里程碑节点
+      </div>
+      <div class="timeline-list" id="milestones-timeline-container">
+        <!-- Milestones timeline generated dynamically -->
+      </div>
     </div>
 
   </div>
 
-  <!-- Custom Hover Tooltip -->
+  <!-- Custom Tooltip Element -->
   <div id="custom-tooltip" class="custom-tooltip"></div>
-
-  <!-- Fullscreen Image Lightbox Modal -->
-  <div id="lightbox-modal" class="modal-overlay" onclick="closeLightbox(event)">
-    <div class="lightbox-content" onclick="event.stopPropagation()">
-      <button class="modal-close-btn" onclick="closeLightbox()">&times;</button>
-      <img id="lightbox-img-element" class="lightbox-img" src="" alt="Enlarged photo">
-      <div class="lightbox-nav">
-        <button class="btn" onclick="prevLightboxImg()">上一张</button>
-        <span id="lightbox-counter">1 / 1</span>
-        <button class="btn" onclick="nextLightboxImg()">下一张</button>
-        <a id="lightbox-download-link" class="btn" href="" target="_blank" download>查看原图</a>
-      </div>
-    </div>
-  </div>
-
-  <!-- Data Source Upload Modal -->
-  <div id="upload-modal" class="modal-overlay" onclick="closeUploadModal(event)">
-    <div class="upload-modal-box" onclick="event.stopPropagation()">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
-        <h3 style="font-size: 1.2rem; font-weight: 700;">📁 导入或切换数据源</h3>
-        <button class="modal-close-btn" style="position: static;" onclick="closeUploadModal()">&times;</button>
-      </div>
-
-      <p style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.6;">
-        看板默认已自动加载 <code style="color: var(--color-together);">backend/data</code> 的最新日记、话题与用户数据。如需更新或查看其它备份，可直接拖拽或选取对应 JSON 文件。
-      </p>
-
-      <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input-json').click()">
-        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-        <div style="font-weight: 600; margin-bottom: 4px;">点击选择或将 JSON 文件拖入此处</div>
-        <div style="font-size: 0.75rem; color: var(--text-sub);">支持 moments.json / users.json / topics.json / posts.json</div>
-      </div>
-      <input type="file" id="file-input-json" multiple accept=".json" style="display: none;">
-
-      <div style="display: flex; justify-content: flex-end; gap: 10px;">
-        <button class="btn" onclick="resetDefaultData()">恢复默认数据</button>
-        <button class="btn btn-primary" onclick="closeUploadModal()">完成</button>
-      </div>
-    </div>
-  </div>
 
   <!-- Embedded Live Snapshot Fallback Data -->
   <script>
@@ -6594,472 +6030,17 @@
     "created_at": "2026-08-21T00:31:21.600+08:00",
     "updated_at": "2026-08-21T00:35:21.315+08:00"
   }
-],
-      users: [
-  {
-    "uid": "A",
-    "nickname": "hyx",
-    "partner_uid": "B",
-    "avatar_url": "backend/uploads/ms2rlxvn7sju9e.jpg",
-    "wallpaper_diary_url": "backend/uploads/mssm9c6hv2kcwl.jpg",
-    "wallpaper_diary_opacity": 1,
-    "wallpaper_topic_url": "backend/uploads/mssnlqnb97f7j4.jpg",
-    "wallpaper_topic_opacity": 1
-  },
-  {
-    "uid": "B",
-    "nickname": "cyc",
-    "partner_uid": "A",
-    "avatar_url": "backend/uploads/1000057506.jpg",
-    "wallpaper_diary_url": "backend/uploads/mszp9whp3thu76.jpg",
-    "wallpaper_diary_opacity": 1,
-    "wallpaper_topic_url": "backend/uploads/mssotne8vq2tzx.jpg",
-    "wallpaper_topic_opacity": 1
-  }
-],
-      topics: [
-  {
-    "id": "tmruzws1su6ao",
-    "title": "睡不着想到的一个肤浅话题",
-    "author_id": "B",
-    "created_at": "2026-07-22T02:37:14.368+08:00"
-  },
-  {
-    "id": "tmrvvjdnc8p54",
-    "title": "听歌的时候耳机该不该拆成一人一只",
-    "author_id": "A",
-    "created_at": "2026-07-22T17:22:36.888+08:00"
-  },
-  {
-    "id": "tmrx3qn43kg8o",
-    "title": "夸夸hyx",
-    "author_id": "A",
-    "created_at": "2026-07-23T13:59:58.851+08:00"
-  },
-  {
-    "id": "tmsr4okpyn1y9",
-    "title": "关于💰的问题",
-    "author_id": "B",
-    "created_at": "2026-08-13T14:19:27.334+08:00"
-  }
-],
-      posts: [
-  {
-    "id": "pmruzxhqzc0gu",
-    "topic_id": "tmruzws1su6ao",
-    "author_id": "B",
-    "content": "请说出喜欢乙醇的十个理由。（不得过于敷衍）",
-    "created_at": "2026-07-22T02:37:47.675+08:00"
-  },
-  {
-    "id": "pmrvum3i6fzym",
-    "topic_id": "tmruzws1su6ao",
-    "author_id": "A",
-    "content": "喜欢你的n个理由，这个顺序也是我在认识你了解你的过程中慢慢发现的……\n1.有礼貌。那时候问你要文案的时候第一反应觉得你很有礼貌，是那种很容易说话的人，待人处事得体。\n2.善良。不轻易让别人难堪，很考虑他人感受，跟你聊天很舒服。\n3.冰雪聪明。也许这个期末周有点打击你的信心但是其实绩点在前20%没那么容易的，其实学业之外的概念你理解起来也很快我后面还发现。\n4.爱猫。我相信对小动物有爱心的人总不会差。\n5.大摄影家。拍的照片色调超级无敌绝世好看，感觉镜头像素不够限制了你的发挥，喜欢欣赏你拍的猫片鱼片花片风景片。\n6.热心。之前问你要攻略的时候你手写了一大版我好感动，以及还有一些其他帮到我的时候总是不遗余力的帮，还有做志愿者，哪怕可能有功利成分但是做这个还是能说明你的热心的，热心市民cyc。\n7.好好看。眼睛好看脸好看穿搭好看有气质，每次线下见到你的时候都这么觉得。\n8.对美食非常的权威。你的舌头就是尺，你推荐给我的好吃的味道就从来没差过。\n9.有努力有毅力。工作日上课周日做家教连轴转转转这个需要很大毅力才撑下去的你都撑过来了，很佩服哟。\n10.爱家人。你用工资给爸妈买手机这个给我挺大震撼的，对比之下我10000果酱到手也只是简单请家里吃了顿饭感觉差点意思。\n11.很懂生活。画画泡茶养花桌搭都很有生活感，是能够把日子过得开心的，心灵手巧。\n12.勤劳。给傻逼舍友打扫卫生这个不容易，我干过我知道www。\n13.对我好。这样写很奇怪但是端午节你投喂我那次我真的是开心得要哭，太好吃了。\n14.讲道理。就不是完全情绪处理事情，如果我们吵架的话，你有时候分析一通比我还要理智还要冷静。",
-    "created_at": "2026-07-22T16:56:44.094+08:00"
-  },
-  {
-    "id": "pmrvumykpbv3k",
-    "topic_id": "tmruzws1su6ao",
-    "author_id": "A",
-    "content": "超额完成任务厉害吧，未完待续o，我以后发现了更多还要有补充环节……",
-    "created_at": "2026-07-22T16:57:24.361+08:00"
-  },
-  {
-    "id": "pmrvvjoc07ayx",
-    "topic_id": "tmrvvjdnc8p54",
-    "author_id": "A",
-    "content": "《花束般的恋爱》里有这样一个场景：\n男女主在吃饭的时候看见隔壁桌的情侣靠在一起各戴一只耳机听歌，然后两人锐评\n现代音乐大多是立体声（Stereo），L（左）声道和 R（右）声道录制的声音是不一样的。比如一首歌的左声道可能放的是吉他或小提琴，右声道放的是贝斯或大提琴。\n两个人各戴一只耳机，看似在浪漫地“听同一首歌”，实际上一个人全程只听到了左声道，另一个全程只听到了右声道。\n你赞不赞同把耳机拆成两只一人一只呢",
-    "created_at": "2026-07-22T17:22:50.736+08:00"
-  },
-  {
-    "id": "pmrvvkhpwf9w6",
-    "topic_id": "tmrvvjdnc8p54",
-    "author_id": "A",
-    "content": "这个问题很多影评也从隐喻的角度理解两个耳机也是映射两个人在一起之间的关系，但我其实觉得那些影评逻辑漏洞挺多的。\n我也有一些自己的想法嘿嘿",
-    "created_at": "2026-07-22T17:23:28.820+08:00"
-  },
-  {
-    "id": "pmrvvu1tr4sy4",
-    "topic_id": "tmruzws1su6ao",
-    "author_id": "B",
-    "content": "油嘴滑舌（bushi）！谢谢哇，🥺，谗言好听爱听。",
-    "created_at": "2026-07-22T17:30:54.783+08:00"
-  },
-  {
-    "id": "pmrweabheirxw",
-    "topic_id": "tmrvvjdnc8p54",
-    "author_id": "B",
-    "content": "我在想你的表述，在思考是不是想说，两人看似灵魂共鸣，实则只是为了共鸣而共鸣，为了共情而共情，为了寻找相似而创造相似的感情，🧐，看似在一块实则活在两个世界？",
-    "created_at": "2026-07-23T02:07:26.882+08:00"
-  },
-  {
-    "id": "pmrwec2gibd2p",
-    "topic_id": "tmrvvjdnc8p54",
-    "author_id": "B",
-    "content": "因为左右声道听到的是不一样的嘛，说实话，我第一反应是，这有啥，反正听的是同一首歌，还讨论这个干啥，但是你非要往深里哲学里讨论，可能就是不一样的结果。",
-    "created_at": "2026-07-23T02:08:48.498+08:00"
-  },
-  {
-    "id": "pmrwei9tzc6sf",
-    "topic_id": "tmrvvjdnc8p54",
-    "author_id": "B",
-    "content": "其实我感觉两只耳机一人一只挺好的（）还没有和异性体验过这种感受。我记得高二的时候夜自修抓得严，我当时的mp3是只能插有线无法连蓝牙，我的一个好朋友坐在我隔壁组的斜前方，她的是可以连蓝牙的，戴着蓝牙耳机用头发挡住不容易被抓，有线一下子就暴露了。我想听歌写作业的夜自修，就会喊她名字，拿起mp3示意问她听不听歌，她一下子秒懂，就会把蓝牙耳机的一只传过来给我，我们的歌单几乎是重合的，有时候她会让我挑歌，她也是个细腻的人，也会刻意播我们共同喜欢的歌。\n当时并没有觉得什么左右声道有什么区别，可能我也没有听过另一只耳机里面的声音是什么样的，只是觉得很幸福很幸福，听着同一首歌，坐在不远不近的地方安静的一块写作业。很幸福，为有这样一个愿意借我耳机，愿意和我分享音乐的好朋友感到很开心。",
-    "created_at": "2026-07-23T02:13:37.991+08:00"
-  },
-  {
-    "id": "pmrwenvybaohx",
-    "topic_id": "tmrvvjdnc8p54",
-    "author_id": "B",
-    "content": "后来高二用的那个mp3坏了，我买了个新的，既可以连蓝牙，也可以插有线，为了方便高三夜自修偷听歌。有一次我发现，有线的插上去之后蓝牙连上也能听，相当于我可以同时用蓝牙and有线，就是可以两个人共同听一首歌，而不是分一人一只耳机。事实上我也这么干过一次，高三有一天中午在自习室和一个好朋友写作业的时候。但我和她的歌单不重合，所以并没有觉得听着很爽，没有对视会心一笑的感觉，并且会时刻担心下一首歌是否暴露自己的属性爱好，是否会让对方觉得自己歌品好差。只是因为她想听歌所以我和她分享了我的一双蓝牙耳机，不是一只。",
-    "created_at": "2026-07-23T02:17:59.939+08:00"
-  },
-  {
-    "id": "pmrweqldgjxhm",
-    "topic_id": "tmrvvjdnc8p54",
-    "author_id": "B",
-    "content": "刚刚搜了一下，手机是不能同时用蓝牙耳机和有线耳机的，这注定了一对情侣或者好朋友想同时同地分享一首歌的时候只能一人一只耳机。",
-    "created_at": "2026-07-23T02:20:06.196+08:00"
-  },
-  {
-    "id": "pmrwetyet0ey4",
-    "topic_id": "tmrvvjdnc8p54",
-    "author_id": "B",
-    "content": "听歌本身是一个很重要的行为，因为我们在分享同一首歌，可能是我向你介绍一首我喜欢的歌，或者说我们听一首我们共同喜欢的歌。我认为耳机分成一人一只挺好的，🥺但我不是很重视到底一边听到的是什么另一边是什么，我感觉分享耳机这个行为已经超越了赏析音乐本身。而且完全可以听一半交换耳机，而且我们在被对方分享之后过后也会慢慢细品的（）所以我不觉得分享耳机这个行为有什么不好，相反很想尝试。希望有一天可以和你分一只耳机，无论是听你喜欢的歌还是我喜欢的，或者说我们共同喜欢的。",
-    "created_at": "2026-07-23T02:22:43.061+08:00"
-  },
-  {
-    "id": "pmrwfyj1uvvbe",
-    "topic_id": "tmrvvjdnc8p54",
-    "author_id": "B",
-    "content": "对视会心一笑：因为听到彼此都喜欢的歌的时候是很激动的，会不自觉抬头望向对方，🥺",
-    "created_at": "2026-07-23T02:54:16.050+08:00"
-  },
-  {
-    "id": "pmrwg5haa5mk6",
-    "topic_id": "tmrvvjdnc8p54",
-    "author_id": "B",
-    "content": "刚好就有这么两个和耳机有关的经历。我想说的是，如果是同频的人，就算听着一半音效的音乐也不会觉得有什么欠缺，但如果不同频，就算每个人都听着一样的完整的旋律，也只是强迫走在了同一条路上。",
-    "created_at": "2026-07-23T02:59:40.354+08:00"
-  },
-  {
-    "id": "pmrwymdjm7hep",
-    "topic_id": "tmrvvjdnc8p54",
-    "author_id": "A",
-    "content": "ok啊依旧共脑，我写这个话题的时候就是想着日后某一天，能不能也跟你共享一对耳机，其实看电影的时候看到这个观点我其实是抗拒之",
-    "created_at": "2026-07-23T11:36:41.746+08:00"
-  },
-  {
-    "id": "pmrwzcrix5bd4",
-    "topic_id": "tmrvvjdnc8p54",
-    "author_id": "A",
-    "content": "我认为拆成一人一只是一种很奇妙的连接，可能无线耳机还差点意思，有线耳机真的是把两个人用一根线连接在一个波段上，有种灵魂相连的感觉",
-    "created_at": "2026-07-23T11:57:12.921+08:00"
-  },
-  {
-    "id": "pmrwzgunh24p5",
-    "topic_id": "tmrvvjdnc8p54",
-    "author_id": "A",
-    "content": "然而我高中的时候跟前女友提出这个想法的时候直接被回拒了，他说他不想听，我尴尬尴尬尴尬现在想到那一幕都觉得很尴尬，所以往后都没跟别人提及这种想法……",
-    "created_at": "2026-07-23T12:00:23.597+08:00"
-  },
-  {
-    "id": "pmrwzimgzpdaw",
-    "topic_id": "tmrvvjdnc8p54",
-    "author_id": "A",
-    "content": "你这个解释非常的ok呀我超赞同，就是这个共享耳机他的主要目标其实并非欣赏音乐，而是分享心情",
-    "created_at": "2026-07-23T12:01:46.307+08:00"
-  },
-  {
-    "id": "pmrwzw2hcsqob",
-    "topic_id": "tmrvvjdnc8p54",
-    "author_id": "A",
-    "content": "关于隐喻，有个影评大概说，真正的共鸣不是两个人强行挤进同一个声道，而是两个独立完整的人（各自拥有完整的双声道），在各自的世界里感受着同一种频率。\n但是我觉得很牵强，哪怕是一人一对耳机，同时按下播放键，也难免有亿分之一秒的差错，那就不是同一个频率了。\n所以我更愿意相互去接纳融入彼此的频率，这才是问题的更优解，我们也是这么做的对吧🥰",
-    "created_at": "2026-07-23T12:12:13.584+08:00"
-  },
-  {
-    "id": "pmrx05tqbdial",
-    "topic_id": "tmrvvjdnc8p54",
-    "author_id": "B",
-    "content": "嗯嗯，🥺",
-    "created_at": "2026-07-23T12:19:48.803+08:00"
-  },
-  {
-    "id": "pmrx0t95lcgab",
-    "topic_id": "tmruzws1su6ao",
-    "author_id": "A",
-    "content": "15.幽默风趣。超级厉害的段子手，说出一些特别好笑的观点逗我开心🥰\n16.包容。每次说要炒掉我最后都没炒，我犯错了之后还是会包容我，你是最可爱最伟大之人",
-    "created_at": "2026-07-23T12:38:01.881+08:00"
-  },
-  {
-    "id": "pmrx3rvgj1tf4",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "A",
-    "content": "和某虽偶尔情商堪忧，但是也会有正常的时候，没准有时候还挺靠谱，不知女神可否夸一夸（期待待）",
-    "created_at": "2026-07-23T14:00:56.323+08:00"
-  },
-  {
-    "id": "pmrxpfmpotd5g",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "排名不分先后哦，反正想到什么就写什么了",
-    "created_at": "2026-07-24T00:07:16.668+08:00"
-  },
-  {
-    "id": "pmrxpj9bpqm6s",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "很聪明。这种聪明指你的学习能力，以及学一些新东西上面。我时常感慨，你怎么会这么聪明，都是发自内心的觉得你好厉害，尽管你英语不好也能把英文授课的课考的很好。",
-    "created_at": "2026-07-24T00:10:05.941+08:00"
-  },
-  {
-    "id": "pmrxpkzg9zi5i",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "很负责有担当。基本我说什么你都会做到，只要是我说了的需要你行动的东西。而且你对家人也是，经常听说你照顾一些家人的事情。以及你对于朋友交代的事情或者你作为组长承担一些小组作业，都做的很完美。",
-    "created_at": "2026-07-24T00:11:26.457+08:00"
-  },
-  {
-    "id": "pmrxpmpgjs3un",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "方向感非常好，以及驾驶技术非常好。真的，我打心底里很喜欢。你出门感觉都不用咋看导航，而且你去过好多地方，几乎什么都知道。虽然驾照只拿了两年多吧，但是好像已经开了很多里程了，真的很佩服很喜欢，感觉特别帅气。",
-    "created_at": "2026-07-24T00:12:46.819+08:00"
-  },
-  {
-    "id": "pmrxpo1d5wgu0",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "对我很包容。基本我怎么骂你说你，你也不会骂回来，除了上一次被我莫名其妙冷暴力逼疯了。",
-    "created_at": "2026-07-24T00:13:48.905+08:00"
-  },
-  {
-    "id": "pmrxpq15p5i4d",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "愿意为了我去改变自己的一部分，迁就我的需求。真的有看到你在好好做得更好。愿意照顾我，期末周后期每天晚上都来接我回宿舍，真的很幸福，学完一晚上不用动脑不用动脚地被送回宿舍真的好开心，有时候还会给我带吃的。",
-    "created_at": "2026-07-24T00:15:21.949+08:00"
-  },
-  {
-    "id": "pmrxps7pbbkej",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "很热情。在我们还不太熟的时候，或者说我没有表现出对你有任何好感的时候，你就已经帮了我很多忙。我印象很深就是数模比赛那一周，你很多次主动提起要帮我做表格，刷格式，总是问我用不用帮忙，很感动，因为这些东西我真的自己完成不了。",
-    "created_at": "2026-07-24T00:17:03.743+08:00"
-  },
-  {
-    "id": "pmrxptirj7fo1",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "尊重我，虽然有时候挺傻逼的，但是看得出来你也很有教养，行为举止也很克制，尊重我的一切想法，总是给自己的话留一些退路，下意识找补。",
-    "created_at": "2026-07-24T00:18:04.735+08:00"
-  },
-  {
-    "id": "pmrxpvgwmjgqi",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "真的很用心的在帮助我，回馈我给你的一些什么。你总是给我转很多学校的通知，告诉我很多东西要怎么去弄，帮我处理很多我不想干的事情，🥺。",
-    "created_at": "2026-07-24T00:19:35.638+08:00"
-  },
-  {
-    "id": "pmrxpwafje7ko",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "永远支持鼓励我。",
-    "created_at": "2026-07-24T00:20:13.903+08:00"
-  },
-  {
-    "id": "pmrxpx97keuo0",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "谦虚，不过分自信。温和，也不会过分展示自己。我真的受不了很自信很炫耀自己的一些成就的男生，谦卑真的是我很看重的一点。",
-    "created_at": "2026-07-24T00:20:58.976+08:00"
-  },
-  {
-    "id": "pmrxqx5uj4hgd",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "A",
-    "content": "原来我也拥有这么多，，谗言我也爱听ohhhhh，以后我要继续做好，继续被你夸",
-    "created_at": "2026-07-24T00:48:54.235+08:00"
-  },
-  {
-    "id": "pmrxsl9s3t85e",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "底色很善良，很真诚。底色相同表面相反的人会互相吸引，虽然有时候感觉你和我很多脑回路和行为是背道而驰的，但其实也能从你的日常行为中感觉到打心底里你还是一个比较真诚善良的人。我喜欢善良的人，因为我是这种人。我不认为善良代表老实好欺负，而是代表了我们对待世界一切好与坏的一个最纯粹的态度。希望你能一直善良，对我是这样，对其他人更要说是。你好像也没骗过我什么，很单纯，基本问啥说啥，（是么。），表达感情也比较直白，很真诚。",
-    "created_at": "2026-07-24T01:35:38.691+08:00"
-  },
-  {
-    "id": "pmrxt8nkorwst",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "很重要很重要的一点，怎么才想起来：遇到矛盾不回避，会主动解决。虽然在感情没有这么好的时候，时不时会被冷暴力，这是一个坏点，但后面感情好了确认双方都有好感了基本也不会了。很多时候我要吵架我要闹脾气你也不会逃跑，和我对你的印象是一个回避型有点不一样了。相反最近几次矛盾你都有在主动推动解决，无论是好的推动还是压力式推动，但都比回避好！愿意在我冷暴力你的时候，不知道什么原因，但还是主动关心我给我发红包，愿意在被我冷了两天后还是主动提出来请求打电话聊一聊，🥺，给了我个台阶下，也让我们的关系通过矛盾进一步亲密。",
-    "created_at": "2026-07-24T01:53:49.656+08:00"
-  },
-  {
-    "id": "pmrxtd31edic8",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "行动力非常强。急性子一枚，说干就干二话不说的根本不带犹豫的，和我恰恰相反，特别好，能推着我无论是情愿or不情愿地去完成一些必要的事情。真的很需要这样一个人www，因为我真的很多事情太犹豫了。比如当时一直催我去了解那个捡垃圾的百千万的事，害怕我上当受骗吃亏。比如我说耳机丢了，二话不说就跑来湖边摸黑帮我找。比如我说饿了，二话不说直接出门给我买夜宵送到地铁站。行动力最强之人没有之一。比如在我犹豫要不要吃冰的时候告诉我时间还早完全可以去。(但急性子有时候不是一个好事，冲动可能会害了你，要好好判断情况再行事哦)",
-    "created_at": "2026-07-24T01:57:16.322+08:00"
-  },
-  {
-    "id": "pmrydus1tqu7f",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "A",
-    "content": "你又迟迟睡不着在写，但是我爱看，但是你也要注意睡眠哇",
-    "created_at": "2026-07-24T11:30:54.209+08:00"
-  },
-  {
-    "id": "pmrydy8pyc2ag",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "A",
-    "content": "我会急急急但是你心思缜密会帮助我慢下来的，很互补吧",
-    "created_at": "2026-07-24T11:33:35.782+08:00"
-  },
-  {
-    "id": "pmrye0ekmw48n",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "A",
-    "content": "其实不回避这个，是遇到你之后，才下定决心要这样，因为你很重要，我不可以回避，可以说有一些点也是因为你我才慢慢做好🥰",
-    "created_at": "2026-07-24T11:35:16.678+08:00"
-  },
-  {
-    "id": "pmrye54zuahi1",
-    "topic_id": "tmruzws1su6ao",
-    "author_id": "A",
-    "content": "17.心思缜密。能让我这个急急急急的急性子慢下来思考，待人处事会考虑比较多，帮我避免了很多冲动犯错的情况",
-    "created_at": "2026-07-24T11:38:57.546+08:00"
-  },
-  {
-    "id": "pmshgz3t183i3",
-    "topic_id": "tmruzws1su6ao",
-    "author_id": "A",
-    "content": "18.生活常识很足。包括红糖白糖，水果价格等等，了解的都会比我多\n19.真诚勇敢。很多表达方面你会主动很多，比我勇敢很多，我可能还是经常会想退缩\n20.乐观。虽然会因为一些小事变得很丧，还是很快又能乐观调整过来\n21.傲娇。可爱。\n22.很重情义。等好朋友飞机落地报平安能够等到两点半\n23.做事踏实。包括家教啊，转专业面试，你准备都是非常充分的，做事很认真踏实。\n24.心思细腻。为各种好朋友解决了各种问题。\n25.非常爱惜身体。按时吃药这方面做的比我好，会比较关注自己的身体状况。",
-    "created_at": "2026-08-06T20:05:52.261+08:00"
-  },
-  {
-    "id": "pmsj4f3i0g8qj",
-    "topic_id": "tmruzws1su6ao",
-    "author_id": "A",
-    "content": "26.擅长找话题。健谈的乙醇找话题能力在我之上，哎哟人际交往这块我真的被你全方位无死角碾压中……\n27.独立成熟。在依赖依靠别人之前你首先自己是一个非常独立，能力很强的个体，什么事情需要解决都会先想着不麻烦别人先尝试自己做好，在为别人着想的。但是呢允许你在我这里做小孩哇。",
-    "created_at": "2026-08-07T23:49:55.704+08:00"
-  },
-  {
-    "id": "pmskjdzchhqdn",
-    "topic_id": "tmruzws1su6ao",
-    "author_id": "A",
-    "content": "28.有品味。吃的品味，喝的品味，审美的品味，穿搭品味，听歌品味，都是超级高超级好的，又或者说都完美踩中我喜欢的点，总之是很喜欢的一个点。\n29.心灵手巧。擅长手工擅长DIY，回家自制逗猫棒，在学校自制花瓶还有各种桌搭，总之就是很手巧。",
-    "created_at": "2026-08-08T23:36:44.081+08:00"
-  },
-  {
-    "id": "pmskjfq16mbm3",
-    "topic_id": "tmruzws1su6ao",
-    "author_id": "A",
-    "content": "30.掌握茶艺。喔一直觉得懂茶是很高雅很古朴典雅的一项技能，而你在学校泡茶的境界简直让我仰望并倾慕之aaaaaaa",
-    "created_at": "2026-08-08T23:38:05.322+08:00"
-  },
-  {
-    "id": "pmslxjc7d2uay",
-    "topic_id": "tmruzws1su6ao",
-    "author_id": "A",
-    "content": "31.爱干净爱整洁。跟我一样耶，，我怎么才想起这个，看你桌面觉得很整洁，每次见到你都觉得你的身上有淡淡香味，好喜欢。\n32.文笔好。也许我的文笔是堆砌辞藻跟押韵显得外表好，但是我每次读你写的文字，我感受到一种很不一样的真挚跟感动，内核很美好的文笔，也许你很少发现，但我很喜欢。",
-    "created_at": "2026-08-09T23:00:34.826+08:00"
-  },
-  {
-    "id": "pmsqckj5m9rz1",
-    "topic_id": "tmruzws1su6ao",
-    "author_id": "A",
-    "content": "33.有教养。讲话做事有分寸不粗鲁，是非常有家教的优雅好猫……诗经里是不是把这种叫“窈窕淑女”……喜欢之喜欢之",
-    "created_at": "2026-08-13T01:12:29.434+08:00"
-  },
-  {
-    "id": "pmsr2ov9rfozw",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "有好久没有夸过这个和某了。感觉有时候想夸但是可能觉得不能表现的我太喜欢你所以就没写过后可能就忘记了。\n首先是感觉生活能力很强，在家里可以当顶梁柱的程度了。暑假以来已经听到你说很多次开车接送家人去各种地方，然后在家里修各种零零碎碎的东西换东西，帮忙看火做饭，照顾几个小屁孩，虽然可能有时候你觉得自己面对这些事情有点烦躁有点抵抗，不过好像都很好的完成了。很优秀之",
-    "created_at": "2026-08-13T13:23:41.775+08:00"
-  },
-  {
-    "id": "pmsr2v3jv57qw",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "依旧是觉得很聪明脑子可好用，好羡慕，对比之下感觉自己可笨。破解pdf，热水的密码，以及准备那个很神秘的生日礼物，还有像平时你用脚本刷课and收邮件，真的在用技术改变生活了",
-    "created_at": "2026-08-13T13:28:32.443+08:00"
-  },
-  {
-    "id": "pmsr2y5juexm6",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "在慢慢变得更可爱。反正就是说话方式啊以及平时发的表情包什么的，越来越会用一些“好不好嘛”“好不好”“啦”等等这样的词汇，听的我心软软的。以及说话方式也越来越感性，虽然你总觉得我没有认可你你很挫败，但实际上我也在慢慢感受你的变得越来越好，要不然我早走了。",
-    "created_at": "2026-08-13T13:30:55.002+08:00"
-  },
-  {
-    "id": "pmsr3aoilh7t4",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "先骂一下，吵架的时候还是会急急急急急急，总是觉得说了那么多我怎么还不原谅你，很可恶很讨厌。（不过我感觉也是我们两个人的问题，我们吵架的时候都很理智，都在罗列各种有利的证据来表达自己的委屈，可能还是需要慢慢克服这个问题吧，两个人都很喜欢争个对错）每次看你生气的时候我就很难过，觉得你不能这样欺负我！不过可能我也是有欺负你在先，但是请原谅我只是一只尚未成长的小猫。但是好就好在，每次你说的我也觉得比较有道理能听进去，后面也会给我台阶下，吵完架也会要抱抱说想你，总之感觉还是处理的比较好，不过大直男仍有成长的空间啦，我也是",
-    "created_at": "2026-08-13T13:40:39.453+08:00"
-  },
-  {
-    "id": "pmsr3jedmh274",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "为我好的方式非常的老派，或者说保持感情的方法非常老派，整个人也非常老派。对一个人好是很直接的，我感觉你对我是这样的，整个人又精明又单纯的。",
-    "created_at": "2026-08-13T13:47:26.218+08:00"
-  },
-  {
-    "id": "pmsr3rlw8an02",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "喜欢你直接夸夸我，直接表达你的情感和喜欢。你总是不吝啬你的欣赏地夸我，我的方方面面你都能看见且欣赏，就连我养花泡茶你也觉得非常好，真是奇妙，没想过这种也能被人夸。\n以及你能看见我的夸夸，我夸你之后你会觉得好开心好开心ヾ(Ő∀Ő๑)ﾉ太好惹，在回应我的夸夸这件事上给足了情绪价值！一方面肯定是你需求比较低，一方面是因为你足够在意我肯定我，在这件事上我还要向你学习。",
-    "created_at": "2026-08-13T13:53:49.208+08:00"
-  },
-  {
-    "id": "pmsr408mavkjw",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "很有自己的想法，很有主见，会有自己的思考。一直以来我对于男女感情这个问题，都是认为男生应该低头多一些就算受一些委屈也没关系，就是男女之间应该是男生多担当一些。但你很喜欢强调我们之间的平等关系，不过这种关系也是建立在你对我尊重和重视的基础上。关于这个可能就是三观上面的一个差异，但是我也觉得你说的很好，所以相互融合中…",
-    "created_at": "2026-08-13T14:00:31.906+08:00"
-  },
-  {
-    "id": "pmsr499jjhwpt",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "很听话啊，我教育你你都会一本正经地答应，不过虽然不知道你能做到多少就是了，比如一直叮嘱你要好好吃饭。而且你也很老实很好玩啊，有时候不太配合我，但是因为太老派了不让玩委屈巴巴的也很可爱啊，不过也在努力配合我了，现在也会玩我了，昨天晚上打电话就逗了我好几次。之前还老是把自己说的那么老实可怜乖巧，明明也是非常恶劣的一个人！尽管我很折腾人很闹腾，有时候还喜欢胡搅蛮缠，但你都基本可以全盘接受还觉得我很可爱，虽然肯定是不太情愿的居多，但还是会咽下不满陪我玩一会。",
-    "created_at": "2026-08-13T14:07:33.007+08:00"
-  },
-  {
-    "id": "pmsr50hcby7ko",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "不轻易放弃。生活上学习上你肯定也是这样的，换车的空调滤芯也是自己去研究视频，感觉在车库里弄这些可累。还有像之前也是尽力去争取三人寝，以及你体育被打错分也会去找老师（换我不一定），也经常会劝我多试试别的方法，虽然我总是放弃。但我还想提的是在处理我们两个人之间的关系，之前还没有互相确认心意的时候，你总是用一种语气“如果你觉得烦了，我立马就走”，说实话看到这种话我会觉得有点烦躁，怎么你都没坚持一下就要走，不过因为你也在考虑我的感受。但两个人比较熟了相互有好感了现在，感觉你是死都不撒手那种，每次遇到矛盾就只想解决问题不会解决我，还总是说我们的防线很脆弱，事实上就是这样，我是一个会考虑合不合适要不要及时止损的人，但你可能会更多的想要去解决问题去维持关系，我觉得这可能就是在成功踏入更好关系的努力吧，谢谢你的坚持，我也会慢慢改变的。",
-    "created_at": "2026-08-13T14:28:42.827+08:00"
-  },
-  {
-    "id": "pmsr5v9ghytnj",
-    "topic_id": "tmrx3qn43kg8o",
-    "author_id": "B",
-    "content": "看了你夸我的才想起来，要夸你爱干净很勤快！！反正据我所知很多男生都是有点邋遢的🥶🥶🥶但是你能把宿舍这一块生活空间整理的非常整洁还能帮舍友收拾烂摊子，非常好啊非常好。打小就爱干净。",
-    "created_at": "2026-08-13T14:52:38.945+08:00"
-  }
 ]
     };
   </script>
 
-  <!-- Dashboard JavaScript Engine -->
+  <!-- JavaScript Analytics Engine -->
   <script>
     // Global State
     let AppState = {
       moments: window.INITIAL_DATA.moments,
-      users: window.INITIAL_DATA.users,
-      topics: window.INITIAL_DATA.topics,
-      posts: window.INITIAL_DATA.posts,
       stats: null,
-      selectedDate: '',
-      filteredDates: [],
-      currentLightboxList: [],
-      currentLightboxIndex: 0,
+      selectedYear: null,
       charts: {}
     };
 
@@ -7068,108 +6049,81 @@
       initTheme();
       initEvents();
       
-      // Attempt to fetch fresh data from backend
-      await tryFetchBackendData();
+      // Fetch fresh moments.json if possible
+      await tryFetchMomentsData();
       
       // Calculate & Render All
       recomputeAndRender();
     });
 
-    // Attempt to load fresh data via HTTP fetch
-    async function tryFetchBackendData() {
+    // Pure Static Fetch of moments.json
+    async function tryFetchMomentsData() {
       const startTime = performance.now();
       try {
-        const [momentsRes, usersRes, topicsRes, postsRes] = await Promise.allSettled([
-          fetch('./backend/data/moments.json?t=' + Date.now()).then(r => r.json()),
-          fetch('./backend/data/users.json?t=' + Date.now()).then(r => r.json()),
-          fetch('./backend/data/topics.json?t=' + Date.now()).then(r => r.json()),
-          fetch('./backend/data/posts.json?t=' + Date.now()).then(r => r.json())
-        ]);
-
-        if (momentsRes.status === 'fulfilled' && Array.isArray(momentsRes.value)) {
-          AppState.moments = momentsRes.value;
+        const res = await fetch('./backend/data/moments.json?t=' + Date.now());
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            AppState.moments = data;
+            const timeTaken = (performance.now() - startTime).toFixed(1);
+            updateStatusBadge('数据分析完成 · ' + timeTaken + 'ms');
+            return;
+          }
         }
-        if (usersRes.status === 'fulfilled' && Array.isArray(usersRes.value)) {
-          AppState.users = usersRes.value;
-        }
-        if (topicsRes.status === 'fulfilled' && Array.isArray(topicsRes.value)) {
-          AppState.topics = topicsRes.value;
-        }
-        if (postsRes.status === 'fulfilled' && Array.isArray(postsRes.value)) {
-          AppState.posts = postsRes.value;
-        }
-        const timeTaken = (performance.now() - startTime).toFixed(1);
-        updateStatusBadge(true, '实时后端数据 · ' + timeTaken + 'ms');
       } catch (err) {
-        const timeTaken = (performance.now() - startTime).toFixed(1);
-        updateStatusBadge(false, '本地快照引擎 · ' + timeTaken + 'ms');
+        // Fallback silently to embedded data
       }
+      const timeTaken = (performance.now() - startTime).toFixed(1);
+      updateStatusBadge('快照数据就绪 · ' + timeTaken + 'ms');
     }
 
-    function updateStatusBadge(isOnline, text) {
+    function updateStatusBadge(text) {
       const el = document.getElementById('live-status-text');
       if (el) el.textContent = text;
     }
 
-    // Comprehensive Stats Calculation Engine
+    // Comprehensive Stats Calculation Engine (100% Dynamic from moments.json)
     function calculateStatistics() {
       const t0 = performance.now();
       const moments = AppState.moments || [];
-      const users = AppState.users || [];
-      const topics = AppState.topics || [];
-      const posts = AppState.posts || [];
-
-      const userA = users.find(u => u.uid === 'A') || { uid: 'A', nickname: 'hyx' };
-      const userB = users.find(u => u.uid === 'B') || { uid: 'B', nickname: 'cyc' };
 
       const dates = [...new Set(moments.map(m => m.date_str).filter(Boolean))].sort();
       const dateMap = {};
-      dates.forEach(d => { dateMap[d] = { A: null, B: null }; });
+      dates.forEach(d => { dateMap[d] = { chars: 0, photos: 0, comments: 0, A: null, B: null }; });
 
       const stats = {
         dates,
         dateMap,
+        availableYears: [],
         A: {
           uid: 'A',
-          nickname: userA.nickname || 'hyx',
-          avatarUrl: userA.avatar_url || '',
+          nickname: 'hyx',
           momentsCount: 0,
           totalChars: 0,
           totalPhotos: 0,
           moods: [],
-          commentsSent: 0,
           commentsReceived: 0,
-          topicsCount: 0,
-          postsCount: 0,
-          postChars: 0,
           hoursDist: Array(24).fill(0),
           weekdayDist: Array(7).fill(0),
           moodDist: { 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0 },
-          maxCharsInOne: 0,
-          maxCharsDate: '',
-          maxPhotosInOne: 0,
-          maxPhotosDate: ''
+          lengthBrackets: { '<200': 0, '200-500': 0, '500-1000': 0, '>1000': 0 },
+          photoBrackets: { '0张': 0, '1-3张': 0, '4-9张': 0, '10张+': 0 },
+          firstPostCount: 0
         },
         B: {
           uid: 'B',
-          nickname: userB.nickname || 'cyc',
-          avatarUrl: userB.avatar_url || '',
+          nickname: 'cyc',
           momentsCount: 0,
           totalChars: 0,
           totalPhotos: 0,
           moods: [],
-          commentsSent: 0,
           commentsReceived: 0,
-          topicsCount: 0,
-          postsCount: 0,
-          postChars: 0,
           hoursDist: Array(24).fill(0),
           weekdayDist: Array(7).fill(0),
           moodDist: { 1:0, 2:0, 3:0, 4:0, 5:0, 6:0, 7:0, 8:0, 9:0, 10:0 },
-          maxCharsInOne: 0,
-          maxCharsDate: '',
-          maxPhotosInOne: 0,
-          maxPhotosDate: ''
+          lengthBrackets: { '<200': 0, '200-500': 0, '500-1000': 0, '>1000': 0 },
+          photoBrackets: { '0张': 0, '1-3张': 0, '4-9张': 0, '10张+': 0 },
+          firstPostCount: 0
         },
         together: {
           uniqueDays: dates.length,
@@ -7180,53 +6134,63 @@
           totalChars: 0,
           totalPhotos: 0,
           totalComments: 0,
-          totalTopics: topics.length,
-          totalPosts: posts.length,
-          totalPostChars: 0,
           longestStreak: 0,
-          currentStreak: 0,
+          streakStart: '',
+          streakEnd: '',
           highMoodBothDays: 0,
+          syncMoodDays: 0,
           avgMoodCombined: 0
         },
+        monthlyData: {},
         timelineData: [] // For charts
       };
 
+      // Extract all years
+      stats.availableYears = [...new Set(dates.map(d => d.slice(0, 4)))].sort().reverse();
+      if (!stats.availableYears.length) stats.availableYears = [new Date().getFullYear().toString()];
+      if (!AppState.selectedYear || !stats.availableYears.includes(AppState.selectedYear)) {
+        AppState.selectedYear = stats.availableYears[0];
+      }
+
       moments.forEach(m => {
+        const chars = (m.feeling || '').length;
+        const photos = (m.image_urls || []).length;
+        const comments = (m.comments || []).length;
+
         if (dateMap[m.date_str]) {
           dateMap[m.date_str][m.author_id] = m;
+          dateMap[m.date_str].chars += chars;
+          dateMap[m.date_str].photos += photos;
+          dateMap[m.date_str].comments += comments;
         }
 
         const u = stats[m.author_id];
         if (!u) return;
 
         u.momentsCount++;
-        const chars = (m.feeling || '').length;
         u.totalChars += chars;
-        if (chars > u.maxCharsInOne) {
-          u.maxCharsInOne = chars;
-          u.maxCharsDate = m.date_str;
-        }
 
-        const photos = (m.image_urls || []).length;
+        // Length brackets
+        if (chars < 200) u.lengthBrackets['<200']++;
+        else if (chars <= 500) u.lengthBrackets['200-500']++;
+        else if (chars <= 1000) u.lengthBrackets['500-1000']++;
+        else u.lengthBrackets['>1000']++;
+
         u.totalPhotos += photos;
-        if (photos > u.maxPhotosInOne) {
-          u.maxPhotosInOne = photos;
-          u.maxPhotosDate = m.date_str;
-        }
+
+        // Photo brackets
+        if (photos === 0) u.photoBrackets['0张']++;
+        else if (photos <= 3) u.photoBrackets['1-3张']++;
+        else if (photos <= 9) u.photoBrackets['4-9张']++;
+        else u.photoBrackets['10张+']++;
 
         if (m.mood != null && m.mood >= 1 && m.mood <= 10) {
           u.moods.push(m.mood);
           u.moodDist[m.mood] = (u.moodDist[m.mood] || 0) + 1;
         }
 
-        const comments = m.comments || [];
-        u.commentsReceived += comments.length;
-        comments.forEach(c => {
-          if (stats[c.author_id]) {
-            stats[c.author_id].commentsSent++;
-          }
-          stats.together.totalComments++;
-        });
+        u.commentsReceived += comments;
+        stats.together.totalComments += comments;
 
         if (m.created_at) {
           const d = new Date(m.created_at);
@@ -7235,35 +6199,60 @@
           const weekday = new Date(d.getTime() + 8 * 3600 * 1000).getUTCDay();
           u.weekdayDist[weekday]++;
         }
-      });
 
-      topics.forEach(t => {
-        if (stats[t.author_id]) stats[t.author_id].topicsCount++;
-      });
-
-      posts.forEach(p => {
-        if (stats[p.author_id]) {
-          stats[p.author_id].postsCount++;
-          const len = (p.content || '').length;
-          stats[p.author_id].postChars += len;
-          stats.together.totalPostChars += len;
+        // Monthly aggregation
+        const monthKey = m.date_str.slice(0, 7);
+        if (!stats.monthlyData[monthKey]) {
+          stats.monthlyData[monthKey] = {
+            countA: 0, countB: 0,
+            charsA: 0, charsB: 0,
+            photosA: 0, photosB: 0,
+            moodsA: [], moodsB: []
+          };
+        }
+        const mObj = stats.monthlyData[monthKey];
+        if (m.author_id === 'A') {
+          mObj.countA++;
+          mObj.charsA += chars;
+          mObj.photosA += photos;
+          if (m.mood) mObj.moodsA.push(m.mood);
+        } else {
+          mObj.countB++;
+          mObj.charsB += chars;
+          mObj.photosB += photos;
+          if (m.mood) mObj.moodsB.push(m.mood);
         }
       });
 
       stats.together.totalChars = stats.A.totalChars + stats.B.totalChars;
       stats.together.totalPhotos = stats.A.totalPhotos + stats.B.totalPhotos;
 
-      // Day analysis & Streak
+      // Day analysis & Streak calculation
       let maxStreak = 0;
+      let streakStart = '';
+      let streakEnd = '';
       let curStreak = 0;
+      let curStart = '';
 
       dates.forEach((d, idx) => {
         const itemA = dateMap[d].A;
         const itemB = dateMap[d].B;
+
         if (itemA && itemB) {
           stats.together.bothDays++;
           if (itemA.mood >= 8 && itemB.mood >= 8) {
             stats.together.highMoodBothDays++;
+          }
+          if (itemA.mood != null && itemB.mood != null && Math.abs(itemA.mood - itemB.mood) <= 1) {
+            stats.together.syncMoodDays++;
+          }
+
+          // First post calculation
+          if (itemA.created_at && itemB.created_at) {
+            const tA = new Date(itemA.created_at).getTime();
+            const tB = new Date(itemB.created_at).getTime();
+            if (tA < tB) stats.A.firstPostCount++;
+            else stats.B.firstPostCount++;
           }
         } else if (itemA) {
           stats.together.onlyADays++;
@@ -7285,27 +6274,46 @@
         // Streak calc
         if (idx === 0) {
           curStreak = 1;
+          curStart = d;
           maxStreak = 1;
+          streakStart = d;
+          streakEnd = d;
         } else {
           const prev = new Date(dates[idx - 1]);
           const curr = new Date(d);
           const diff = Math.round((curr - prev) / (1000 * 60 * 60 * 24));
           if (diff === 1) {
             curStreak++;
-            if (curStreak > maxStreak) maxStreak = curStreak;
+            if (curStreak > maxStreak) {
+              maxStreak = curStreak;
+              streakStart = curStart;
+              streakEnd = d;
+            }
           } else {
             curStreak = 1;
+            curStart = d;
           }
         }
       });
 
       stats.together.longestStreak = maxStreak;
+      stats.together.streakStart = streakStart;
+      stats.together.streakEnd = streakEnd;
 
       const avgMoodA = stats.A.moods.length ? stats.A.moods.reduce((a, b) => a + b, 0) / stats.A.moods.length : 0;
       const avgMoodB = stats.B.moods.length ? stats.B.moods.reduce((a, b) => a + b, 0) / stats.B.moods.length : 0;
       stats.A.avgMood = avgMoodA;
       stats.B.avgMood = avgMoodB;
       stats.together.avgMoodCombined = (avgMoodA + avgMoodB) / 2;
+
+      // Mood standard deviation
+      function getStdDev(arr, mean) {
+        if (!arr.length) return 0;
+        const variance = arr.reduce((a, b) => a + Math.pow(b - mean, 2), 0) / arr.length;
+        return Math.sqrt(variance);
+      }
+      stats.A.moodStdDev = getStdDev(stats.A.moods, avgMoodA);
+      stats.B.moodStdDev = getStdDev(stats.B.moods, avgMoodB);
 
       const calcDuration = (performance.now() - t0).toFixed(1);
       stats.calcDuration = calcDuration;
@@ -7320,19 +6328,23 @@
       renderHeaderStatus(stats);
       renderKpis(stats);
       renderDuelCards(stats);
+      renderYearSelector(stats);
       renderHeatmap(stats);
-      renderTagsCloud(stats);
       renderCharts(stats);
-      initTimeMachine(stats);
-      renderTopics(stats);
+      renderMonthlyTable(stats);
       renderBadges(stats);
+      renderMilestonesTimeline(stats);
     }
 
     // Render Header Status
     function renderHeaderStatus(stats) {
       const badge = document.getElementById('live-status-text');
       if (badge) {
-        badge.textContent = '实时计算完毕 · ' + stats.calcDuration + 'ms · ' + stats.together.totalMoments + '篇日记';
+        badge.textContent = '数据分析完毕 · ' + stats.calcDuration + 'ms · ' + stats.together.totalMoments + '篇日记';
+      }
+      const subtitle = document.getElementById('header-subtitle');
+      if (subtitle) {
+        subtitle.textContent = '双人日记多维统计全景 · ' + stats.together.uniqueDays + '个记录日 · ' + stats.together.totalChars.toLocaleString() + '字 · ' + stats.together.totalPhotos + '张照片';
       }
     }
 
@@ -7367,53 +6379,73 @@
 
       animateValue('kpi-photos', 0, stats.together.totalPhotos);
       const dailyPhotos = stats.together.uniqueDays ? (stats.together.totalPhotos / stats.together.uniqueDays).toFixed(1) : '0';
+      const avgPhotos = stats.together.totalMoments ? (stats.together.totalPhotos / stats.together.totalMoments).toFixed(1) : '0';
       document.getElementById('kpi-daily-photos').textContent = dailyPhotos;
-      document.getElementById('kpi-photo-rate').textContent = '99%';
+      document.getElementById('kpi-avg-photos').textContent = avgPhotos;
+
+      animateValue('kpi-streak', 0, stats.together.longestStreak);
+      const streakRangeText = stats.together.streakStart ? (stats.together.streakStart.slice(5) + ' ~ ' + stats.together.streakEnd.slice(5) + ' (' + stats.together.longestStreak + '天连击)') : (stats.together.longestStreak + '天连击');
+      document.getElementById('kpi-streak-range').textContent = streakRangeText;
+
+      animateValue('kpi-mood-avg', 0, stats.together.avgMoodCombined, 800, true);
+      document.getElementById('kpi-high-mood-days').textContent = stats.together.highMoodBothDays;
 
       animateValue('kpi-comments', 0, stats.together.totalComments);
       const dailyComments = stats.together.uniqueDays ? (stats.together.totalComments / stats.together.uniqueDays).toFixed(1) : '0';
       const avgComments = stats.together.totalMoments ? (stats.together.totalComments / stats.together.totalMoments).toFixed(1) : '0';
       document.getElementById('kpi-daily-comments').textContent = dailyComments;
       document.getElementById('kpi-avg-comments').textContent = avgComments;
-
-      animateValue('kpi-streak', 0, stats.together.longestStreak);
-      animateValue('kpi-mood-avg', 0, stats.together.avgMoodCombined, 800, true);
-      document.getElementById('kpi-high-mood-days').textContent = stats.together.highMoodBothDays;
     }
 
     // Render User Cards & Balance Ratios
     function renderDuelCards(stats) {
+      const weekdayNames = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+
       // User A
+      const avgCharsA = stats.A.momentsCount ? Math.round(stats.A.totalChars / stats.A.momentsCount) : 0;
+      const avgPhotosA = stats.A.momentsCount ? (stats.A.totalPhotos / stats.A.momentsCount).toFixed(1) : 0;
+
       document.getElementById('name-a').textContent = stats.A.nickname;
-      if (stats.A.avatarUrl) document.getElementById('avatar-a').src = stats.A.avatarUrl;
-      document.getElementById('user-a-moments').innerHTML = stats.A.momentsCount + ' <span class="stat-sub">天</span>';
+      document.getElementById('user-a-records-count').textContent = '累计记录 ' + stats.A.momentsCount + ' 天 · ' + stats.A.momentsCount + ' 篇日记';
       document.getElementById('user-a-chars').textContent = stats.A.totalChars.toLocaleString();
-      document.getElementById('user-a-avg-chars').textContent = stats.A.momentsCount ? Math.round(stats.A.totalChars / stats.A.momentsCount) : 0;
+      document.getElementById('user-a-avg-chars').textContent = avgCharsA;
       document.getElementById('user-a-photos').innerHTML = stats.A.totalPhotos + ' <span class="stat-sub">张</span>';
-      document.getElementById('user-a-avg-photos').textContent = stats.A.momentsCount ? (stats.A.totalPhotos / stats.A.momentsCount).toFixed(1) : 0;
+      document.getElementById('user-a-avg-photos').textContent = avgPhotosA;
       document.getElementById('user-a-mood').innerHTML = stats.A.avgMood.toFixed(2) + ' <span class="stat-sub">/ 10</span>';
-      document.getElementById('user-a-comments').innerHTML = stats.A.commentsSent + ' <span class="stat-sub">条</span>';
-      document.getElementById('user-a-comments-recv').textContent = stats.A.commentsReceived;
-      document.getElementById('user-a-max-chars').textContent = stats.A.maxCharsInOne + ' 字 (' + stats.A.maxCharsDate.slice(5) + ')';
-      document.getElementById('user-a-max-photos').textContent = stats.A.maxPhotosInOne + ' 张';
-      document.getElementById('user-a-topics').textContent = stats.A.topicsCount + ' 话题 · ' + stats.A.postsCount + ' 帖';
+      document.getElementById('user-a-mood-std').textContent = stats.A.moodStdDev.toFixed(2);
+      document.getElementById('user-a-first-post').innerHTML = stats.A.firstPostCount + ' <span class="stat-sub">天率先</span>';
+      const firstPctA = stats.together.bothDays ? ((stats.A.firstPostCount / stats.together.bothDays) * 100).toFixed(1) : '0';
+      document.getElementById('user-a-first-pct').textContent = firstPctA + '%';
+      
+      document.getElementById('user-a-trait-chars').textContent = avgCharsA + ' 字/篇';
+      document.getElementById('user-a-trait-photos').textContent = avgPhotosA + ' 张/篇';
+      
+      const maxDayIdxA = stats.A.weekdayDist.indexOf(Math.max(...stats.A.weekdayDist));
+      document.getElementById('user-a-top-day').textContent = stats.A.momentsCount ? weekdayNames[maxDayIdxA] : '--';
 
       // User B
-      document.getElementById('name-b').textContent = stats.B.nickname;
-      if (stats.B.avatarUrl) document.getElementById('avatar-b').src = stats.B.avatarUrl;
-      document.getElementById('user-b-moments').innerHTML = stats.B.momentsCount + ' <span class="stat-sub">天</span>';
-      document.getElementById('user-b-chars').textContent = stats.B.totalChars.toLocaleString();
-      document.getElementById('user-b-avg-chars').textContent = stats.B.momentsCount ? Math.round(stats.B.totalChars / stats.B.momentsCount) : 0;
-      document.getElementById('user-b-photos').innerHTML = stats.B.totalPhotos + ' <span class="stat-sub">张</span>';
-      document.getElementById('user-b-avg-photos').textContent = stats.B.momentsCount ? (stats.B.totalPhotos / stats.B.momentsCount).toFixed(1) : 0;
-      document.getElementById('user-b-mood').innerHTML = stats.B.avgMood.toFixed(2) + ' <span class="stat-sub">/ 10</span>';
-      document.getElementById('user-b-comments').innerHTML = stats.B.commentsSent + ' <span class="stat-sub">条</span>';
-      document.getElementById('user-b-comments-recv').textContent = stats.B.commentsReceived;
-      document.getElementById('user-b-max-chars').textContent = stats.B.maxCharsInOne + ' 字 (' + stats.B.maxCharsDate.slice(5) + ')';
-      document.getElementById('user-b-max-photos').textContent = stats.B.maxPhotosInOne + ' 张';
-      document.getElementById('user-b-topics').textContent = stats.B.topicsCount + ' 话题 · ' + stats.B.postsCount + ' 帖';
+      const avgCharsB = stats.B.momentsCount ? Math.round(stats.B.totalChars / stats.B.momentsCount) : 0;
+      const avgPhotosB = stats.B.momentsCount ? (stats.B.totalPhotos / stats.B.momentsCount).toFixed(1) : 0;
 
-      // Harmony Meters
+      document.getElementById('name-b').textContent = stats.B.nickname;
+      document.getElementById('user-b-records-count').textContent = '累计记录 ' + stats.B.momentsCount + ' 天 · ' + stats.B.momentsCount + ' 篇日记';
+      document.getElementById('user-b-chars').textContent = stats.B.totalChars.toLocaleString();
+      document.getElementById('user-b-avg-chars').textContent = avgCharsB;
+      document.getElementById('user-b-photos').innerHTML = stats.B.totalPhotos + ' <span class="stat-sub">张</span>';
+      document.getElementById('user-b-avg-photos').textContent = avgPhotosB;
+      document.getElementById('user-b-mood').innerHTML = stats.B.avgMood.toFixed(2) + ' <span class="stat-sub">/ 10</span>';
+      document.getElementById('user-b-mood-std').textContent = stats.B.moodStdDev.toFixed(2);
+      document.getElementById('user-b-first-post').innerHTML = stats.B.firstPostCount + ' <span class="stat-sub">天率先</span>';
+      const firstPctB = stats.together.bothDays ? ((stats.B.firstPostCount / stats.together.bothDays) * 100).toFixed(1) : '0';
+      document.getElementById('user-b-first-pct').textContent = firstPctB + '%';
+
+      document.getElementById('user-b-trait-chars').textContent = avgCharsB + ' 字/篇';
+      document.getElementById('user-b-trait-photos').textContent = avgPhotosB + ' 张/篇';
+
+      const maxDayIdxB = stats.B.weekdayDist.indexOf(Math.max(...stats.B.weekdayDist));
+      document.getElementById('user-b-top-day').textContent = stats.B.momentsCount ? weekdayNames[maxDayIdxB] : '--';
+
+      // Harmony Balance Meters
       const totalChars = (stats.A.totalChars + stats.B.totalChars) || 1;
       const pctCharsA = ((stats.A.totalChars / totalChars) * 100).toFixed(1);
       const pctCharsB = (100 - pctCharsA).toFixed(1);
@@ -7430,31 +6462,82 @@
       document.getElementById('bar-photos-a').style.width = pctPhotosA + '%';
       document.getElementById('bar-photos-b').style.width = pctPhotosB + '%';
 
-      const totalComments = (stats.A.commentsSent + stats.B.commentsSent) || 1;
-      const pctCommentsA = ((stats.A.commentsSent / totalComments) * 100).toFixed(1);
-      const pctCommentsB = (100 - pctCommentsA).toFixed(1);
-      document.getElementById('ratio-comments-a').textContent = pctCommentsA + '%';
-      document.getElementById('ratio-comments-b').textContent = pctCommentsB + '%';
-      document.getElementById('bar-comments-a').style.width = pctCommentsA + '%';
-      document.getElementById('bar-comments-b').style.width = pctCommentsB + '%';
+      const sumAvgChars = (avgCharsA + avgCharsB) || 1;
+      const pctAvgA = ((avgCharsA / sumAvgChars) * 100).toFixed(1);
+      const pctAvgB = (100 - pctAvgA).toFixed(1);
+      document.getElementById('ratio-avg-chars-a').textContent = avgCharsA + '字';
+      document.getElementById('ratio-avg-chars-b').textContent = avgCharsB + '字';
+      document.getElementById('bar-avg-chars-a').style.width = pctAvgA + '%';
+      document.getElementById('bar-avg-chars-b').style.width = pctAvgB + '%';
+
+      // Sync rate
+      const syncPct = stats.together.bothDays ? ((stats.together.syncMoodDays / stats.together.bothDays) * 100).toFixed(1) : '0.0';
+      document.getElementById('synergy-score-text').textContent = syncPct + '%';
+      document.getElementById('sync-days-count').textContent = stats.together.syncMoodDays;
     }
 
-    // Render Heatmap Grid
+    // Render Year Selector for Heatmap
+    function renderYearSelector(stats) {
+      const container = document.getElementById('heatmap-year-selector');
+      if (!container) return;
+      container.innerHTML = '';
+
+      stats.availableYears.forEach(yr => {
+        const btn = document.createElement('button');
+        btn.className = 'year-btn' + (yr === AppState.selectedYear ? ' active' : '');
+        btn.textContent = yr + ' 年';
+        btn.onclick = () => {
+          AppState.selectedYear = yr;
+          document.querySelectorAll('.year-btn').forEach(b => b.classList.remove('active'));
+          btn.classList.add('active');
+          document.getElementById('heatmap-active-year-title').textContent = yr;
+          renderHeatmap(stats);
+        };
+        container.appendChild(btn);
+      });
+      document.getElementById('heatmap-active-year-title').textContent = AppState.selectedYear;
+    }
+
+    // Render Heatmap Grid for Selected Year
     function renderHeatmap(stats) {
       const container = document.getElementById('heatmap-calendar-grid');
       if (!container) return;
       container.innerHTML = '';
 
-      document.getElementById('legend-count-both').textContent = stats.together.bothDays;
-      document.getElementById('legend-count-a').textContent = stats.together.onlyADays;
-      document.getElementById('legend-count-b').textContent = stats.together.onlyBDays;
+      const targetYear = AppState.selectedYear || stats.availableYears[0] || '2026';
 
-      // Start from 2026-02-01 to 2026-08-31
-      const startDate = new Date('2026-02-01');
-      const endDate = new Date('2026-08-31');
-      const cur = new Date(startDate);
+      // Calculate year-specific counts
+      let yearBoth = 0;
+      let yearA = 0;
+      let yearB = 0;
+
+      Object.keys(stats.dateMap).forEach(d => {
+        if (d.startsWith(targetYear)) {
+          const item = stats.dateMap[d];
+          if (item.A && item.B) yearBoth++;
+          else if (item.A) yearA++;
+          else if (item.B) yearB++;
+        }
+      });
+
+      document.getElementById('legend-count-both').textContent = yearBoth;
+      document.getElementById('legend-count-a').textContent = yearA;
+      document.getElementById('legend-count-b').textContent = yearB;
+
+      // Full Year Day Generator (Jan 1 to Dec 31)
+      const startDate = new Date(targetYear + '-01-01T00:00:00');
+      const endDate = new Date(targetYear + '-12-31T00:00:00');
+      const startDayOfWeek = startDate.getDay(); // 0 is Sunday
+
+      // Insert padding empty cells for week offset
+      for (let i = 0; i < startDayOfWeek; i++) {
+        const padCell = document.createElement('div');
+        padCell.className = 'heatmap-cell empty-pad';
+        container.appendChild(padCell);
+      }
 
       const tooltip = document.getElementById('custom-tooltip');
+      const cur = new Date(startDate);
 
       while (cur <= endDate) {
         const dateStr = cur.toISOString().split('T')[0];
@@ -7474,23 +6557,24 @@
           }
         }
 
-        // Hover Tooltip Events
+        // Hover Tooltip Events (Pure statistics display)
         cell.addEventListener('mouseenter', (e) => {
           let content = '<strong>' + dateStr + '</strong><br>';
           if (dayData) {
             if (dayData.A && dayData.B) {
-              content += '✨ <span style="color: #a855f7;">双人共记日</span><br>';
-              content += 'hyx: ' + (dayData.A.feeling||'').length + '字 / ' + (dayData.A.image_urls||[]).length + '图 / 心情 ' + (dayData.A.mood||'-') + '<br>';
-              content += 'cyc: ' + (dayData.B.feeling||'').length + '字 / ' + (dayData.B.image_urls||[]).length + '图 / 心情 ' + (dayData.B.mood||'-') + '<br>';
-              content += '💬 互评: ' + ((dayData.A.comments||[]).length + (dayData.B.comments||[]).length) + ' 条';
+              const totalChars = (dayData.A.feeling||'').length + (dayData.B.feeling||'').length;
+              const totalPhotos = (dayData.A.image_urls||[]).length + (dayData.B.image_urls||[]).length;
+              content += '✨ <span style="color: #a855f7;">双人同写日</span><br>';
+              content += '合著: <strong>' + totalChars.toLocaleString() + '</strong> 字 · <strong>' + totalPhotos + '</strong> 张图<br>';
+              content += 'hyx: ' + (dayData.A.feeling||'').length + '字 · ' + (dayData.A.image_urls||[]).length + '图 · 心情 ' + (dayData.A.mood||'-') + '<br>';
+              content += 'cyc: ' + (dayData.B.feeling||'').length + '字 · ' + (dayData.B.image_urls||[]).length + '图 · 心情 ' + (dayData.B.mood||'-');
             } else if (dayData.A) {
-              content += '🔵 仅 hyx 记录 (' + (dayData.A.feeling||'').length + '字 / ' + (dayData.A.image_urls||[]).length + '图)';
+              content += '🔵 仅 hyx 记录 (' + (dayData.A.feeling||'').length + '字 · ' + (dayData.A.image_urls||[]).length + '图 · 心情 ' + (dayData.A.mood||'-') + ')';
             } else if (dayData.B) {
-              content += '🔴 仅 cyc 记录 (' + (dayData.B.feeling||'').length + '字 / ' + (dayData.B.image_urls||[]).length + '图)';
+              content += '🔴 仅 cyc 记录 (' + (dayData.B.feeling||'').length + '字 · ' + (dayData.B.image_urls||[]).length + '图 · 心情 ' + (dayData.B.mood||'-') + ')';
             }
-            content += '<br><em style="font-size: 0.7rem; color: #94a3b8;">点击直达当日双联日记</em>';
           } else {
-            content += '<span style="color: #64748b;">今日暂无日记</span>';
+            content += '<span style="color: #64748b;">今日未记录</span>';
           }
           tooltip.innerHTML = content;
           tooltip.style.display = 'block';
@@ -7507,51 +6591,9 @@
           tooltip.style.display = 'none';
         });
 
-        // Click to jump to Time Machine
-        cell.addEventListener('click', () => {
-          if (dayData && (dayData.A || dayData.B)) {
-            switchTab('tab-timemachine');
-            jumpToDate(dateStr);
-          }
-        });
-
         container.appendChild(cell);
         cur.setDate(cur.getDate() + 1);
       }
-    }
-
-    // Render Keyword Cloud
-    function renderTagsCloud(stats) {
-      const container = document.getElementById('tags-cloud-container');
-      if (!container) return;
-      container.innerHTML = '';
-
-      const tags = [
-        { word: '想你', count: 16, type: 'tag-both' },
-        { word: '哈哈哈哈', count: 20, type: 'tag-b' },
-        { word: '小猫 / 小卷', count: 12, type: 'tag-b' },
-        { word: '关于你', count: 9, type: 'tag-a' },
-        { word: '关于我', count: 8, type: 'tag-a' },
-        { word: '开心', count: 11, type: 'tag-both' },
-        { word: '电影 & 演出', count: 9, type: 'tag-a' },
-        { word: '我好喜欢', count: 7, type: 'tag-a' },
-        { word: '照片记录', count: 14, type: 'tag-b' },
-        { word: 'Gemini', count: 10, type: 'tag-both' },
-        { word: '约会 & 散步', count: 8, type: 'tag-both' },
-        { word: '晚安', count: 18, type: 'tag-both' }
-      ];
-
-      tags.forEach(t => {
-        const span = document.createElement('div');
-        span.className = 'word-tag ' + t.type;
-        span.innerHTML = '<span>' + t.word + '</span><span class="tag-count">' + t.count + '</span>';
-        span.onclick = () => {
-          switchTab('tab-timemachine');
-          document.getElementById('tm-search-input').value = t.word.split(' ')[0];
-          document.getElementById('tm-search-input').dispatchEvent(new Event('input'));
-        };
-        container.appendChild(span);
-      });
     }
 
     // Render Charts
@@ -7577,7 +6619,7 @@
                 label: 'hyx 字数',
                 data: stats.timelineData.map(d => d.charsA),
                 borderColor: '#6366f1',
-                backgroundColor: 'rgba(99, 102, 241, 0.15)',
+                backgroundColor: 'rgba(99, 102, 241, 0.18)',
                 fill: true,
                 tension: 0.35,
                 borderWidth: 2,
@@ -7588,7 +6630,7 @@
                 label: 'cyc 字数',
                 data: stats.timelineData.map(d => d.charsB),
                 borderColor: '#f43f5e',
-                backgroundColor: 'rgba(244, 63, 94, 0.15)',
+                backgroundColor: 'rgba(244, 63, 94, 0.18)',
                 fill: true,
                 tension: 0.35,
                 borderWidth: 2,
@@ -7628,7 +6670,7 @@
                 borderColor: '#818cf8',
                 backgroundColor: '#818cf8',
                 borderWidth: 2.5,
-                pointRadius: 4,
+                pointRadius: 3.5,
                 pointHoverRadius: 7,
                 tension: 0.3,
                 spanGaps: true
@@ -7639,7 +6681,7 @@
                 borderColor: '#fb7185',
                 backgroundColor: '#fb7185',
                 borderWidth: 2.5,
-                pointRadius: 4,
+                pointRadius: 3.5,
                 pointHoverRadius: 7,
                 tension: 0.3,
                 spanGaps: true
@@ -7661,42 +6703,7 @@
         });
       }
 
-      // Chart 3: Photos Bar
-      if (AppState.charts.photos) AppState.charts.photos.destroy();
-      const ctxPhotos = document.getElementById('chart-photos-bar');
-      if (ctxPhotos) {
-        AppState.charts.photos = new Chart(ctxPhotos, {
-          type: 'bar',
-          data: {
-            labels: dates.slice(-20), // Last 20 days
-            datasets: [
-              {
-                label: 'hyx 照片',
-                data: stats.timelineData.slice(-20).map(d => d.photosA),
-                backgroundColor: 'rgba(99, 102, 241, 0.8)',
-                borderRadius: 4
-              },
-              {
-                label: 'cyc 照片',
-                data: stats.timelineData.slice(-20).map(d => d.photosB),
-                backgroundColor: 'rgba(244, 63, 94, 0.8)',
-                borderRadius: 4
-              }
-            ]
-          },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-              x: { stacked: true, grid: { color: gridColor }, ticks: { color: textColor } },
-              y: { stacked: true, grid: { color: gridColor }, ticks: { color: textColor }, beginAtZero: true }
-            },
-            plugins: { legend: { labels: { color: textColor } } }
-          }
-        });
-      }
-
-      // Chart 4: Hours Radar
+      // Chart 3: Hours Radar (24-Hour Posting Distribution)
       if (AppState.charts.hours) AppState.charts.hours.destroy();
       const ctxHours = document.getElementById('chart-hours-radar');
       if (ctxHours) {
@@ -7731,7 +6738,7 @@
               r: {
                 angleLines: { color: gridColor },
                 grid: { color: gridColor },
-                pointLabels: { color: textColor, font: { size: 10 } },
+                pointLabels: { color: textColor, font: { size: 9 } },
                 ticks: { display: false }
               }
             },
@@ -7740,7 +6747,7 @@
         });
       }
 
-      // Chart 5: Weekdays Bar
+      // Chart 4: Weekdays Bar
       if (AppState.charts.weekdays) AppState.charts.weekdays.destroy();
       const ctxWeekdays = document.getElementById('chart-weekdays-bar');
       if (ctxWeekdays) {
@@ -7751,13 +6758,13 @@
             labels: weekdayLabels,
             datasets: [
               {
-                label: 'hyx',
+                label: 'hyx 篇数',
                 data: stats.A.weekdayDist,
                 backgroundColor: 'rgba(99, 102, 241, 0.85)',
                 borderRadius: 6
               },
               {
-                label: 'cyc',
+                label: 'cyc 篇数',
                 data: stats.B.weekdayDist,
                 backgroundColor: 'rgba(244, 63, 94, 0.85)',
                 borderRadius: 6
@@ -7776,6 +6783,41 @@
         });
       }
 
+      // Chart 5: Photos Bar
+      if (AppState.charts.photos) AppState.charts.photos.destroy();
+      const ctxPhotos = document.getElementById('chart-photos-bar');
+      if (ctxPhotos) {
+        AppState.charts.photos = new Chart(ctxPhotos, {
+          type: 'bar',
+          data: {
+            labels: dates.slice(-18), // Last 18 recorded days
+            datasets: [
+              {
+                label: 'hyx 图片数',
+                data: stats.timelineData.slice(-18).map(d => d.photosA),
+                backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                borderRadius: 4
+              },
+              {
+                label: 'cyc 图片数',
+                data: stats.timelineData.slice(-18).map(d => d.photosB),
+                backgroundColor: 'rgba(244, 63, 94, 0.8)',
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { stacked: true, grid: { color: gridColor }, ticks: { color: textColor } },
+              y: { stacked: true, grid: { color: gridColor }, ticks: { color: textColor }, beginAtZero: true }
+            },
+            plugins: { legend: { labels: { color: textColor } } }
+          }
+        });
+      }
+
       // Chart 6: Mood Distribution
       if (AppState.charts.moodDist) AppState.charts.moodDist.destroy();
       const ctxMoodDist = document.getElementById('chart-mood-dist');
@@ -7787,13 +6829,13 @@
             labels: moodLabels,
             datasets: [
               {
-                label: 'hyx 评分频次',
+                label: 'hyx 打分频次',
                 data: moodLabels.map((_, i) => stats.A.moodDist[i+1] || 0),
                 backgroundColor: 'rgba(99, 102, 241, 0.8)',
                 borderRadius: 4
               },
               {
-                label: 'cyc 评分频次',
+                label: 'cyc 打分频次',
                 data: moodLabels.map((_, i) => stats.B.moodDist[i+1] || 0),
                 backgroundColor: 'rgba(244, 63, 94, 0.8)',
                 borderRadius: 4
@@ -7811,253 +6853,163 @@
           }
         });
       }
-    }
 
-    // Time Machine Initialization
-    function initTimeMachine(stats) {
-      applyTimeMachineFilter();
-    }
-
-    function applyTimeMachineFilter() {
-      const filterType = document.getElementById('tm-category-filter')?.value || 'all';
-      const stats = AppState.stats;
-      if (!stats) return;
-
-      let dates = stats.dates;
-      if (filterType === 'both') {
-        dates = dates.filter(d => stats.dateMap[d].A && stats.dateMap[d].B);
-      } else if (filterType === 'high-mood') {
-        dates = dates.filter(d => (stats.dateMap[d].A?.mood >= 8) || (stats.dateMap[d].B?.mood >= 8));
-      } else if (filterType === 'has-photos') {
-        dates = dates.filter(d => ((stats.dateMap[d].A?.image_urls||[]).length > 0) || ((stats.dateMap[d].B?.image_urls||[]).length > 0));
-      } else if (filterType === 'has-comments') {
-        dates = dates.filter(d => ((stats.dateMap[d].A?.comments||[]).length > 0) || ((stats.dateMap[d].B?.comments||[]).length > 0));
-      }
-
-      AppState.filteredDates = dates;
-
-      const dropdown = document.getElementById('tm-date-dropdown');
-      dropdown.innerHTML = '';
-      dates.forEach(d => {
-        const opt = document.createElement('option');
-        opt.value = d;
-        const info = stats.dateMap[d];
-        const authorTag = (info.A && info.B) ? '双人' : (info.A ? 'hyx' : 'cyc');
-        opt.textContent = d + ' (' + authorTag + ')';
-        dropdown.appendChild(opt);
-      });
-
-      if (!dates.includes(AppState.selectedDate)) {
-        AppState.selectedDate = dates[dates.length - 1] || '';
-      }
-      if (AppState.selectedDate) {
-        jumpToDate(AppState.selectedDate);
-      }
-    }
-
-    function jumpToDate(dateStr) {
-      if (!AppState.stats.dateMap[dateStr]) return;
-      AppState.selectedDate = dateStr;
-
-      document.getElementById('tm-current-date-label').textContent = dateStr;
-      document.getElementById('tm-date-dropdown').value = dateStr;
-
-      const dayData = AppState.stats.dateMap[dateStr];
-      renderMomentCard('a', dayData.A, AppState.stats.A);
-      renderMomentCard('b', dayData.B, AppState.stats.B);
-    }
-
-    function renderMomentCard(userKey, moment, userProfile) {
-      const avatarEl = document.getElementById('tm-avatar-' + userKey);
-      const nameEl = document.getElementById('tm-name-' + userKey);
-      const timeEl = document.getElementById('tm-time-' + userKey);
-      const moodBadge = document.getElementById('tm-mood-badge-' + userKey);
-      const contentEl = document.getElementById('tm-content-' + userKey);
-      const galleryEl = document.getElementById('tm-gallery-' + userKey);
-      const commentsBox = document.getElementById('tm-comments-box-' + userKey);
-      const commentsList = document.getElementById('tm-comments-list-' + userKey);
-      const commentCount = document.getElementById('tm-comment-count-' + userKey);
-
-      nameEl.textContent = userProfile.nickname;
-      if (userProfile.avatarUrl) avatarEl.src = userProfile.avatarUrl;
-
-      if (!moment) {
-        timeEl.textContent = '本日未记录';
-        moodBadge.style.display = 'none';
-        contentEl.innerHTML = '<div class="empty-moment-placeholder">🍃 ' + userProfile.nickname + ' 这一天没有留下日记</div>';
-        galleryEl.innerHTML = '';
-        commentsBox.style.display = 'none';
-        return;
-      }
-
-      timeEl.textContent = moment.created_at ? moment.created_at.slice(11, 16) + ' 发布' : '已发布';
-
-      // Mood badge
-      if (moment.mood != null) {
-        moodBadge.style.display = 'inline-flex';
-        moodBadge.className = 'mood-pill ' + (moment.mood >= 8 ? 'mood-high' : (moment.mood >= 5 ? 'mood-mid' : 'mood-low'));
-        moodBadge.textContent = '💖 ' + moment.mood + ' 分';
-      } else {
-        moodBadge.style.display = 'none';
-      }
-
-      // Feeling text
-      contentEl.textContent = moment.feeling || '无文字内容';
-
-      // Images Gallery
-      galleryEl.innerHTML = '';
-      const images = moment.image_urls || [];
-      if (images.length > 0) {
-        galleryEl.style.display = 'grid';
-        images.forEach((url, idx) => {
-          const img = document.createElement('img');
-          img.className = 'gallery-img-thumb';
-          img.src = url;
-          img.loading = 'lazy';
-          img.onclick = () => openLightbox(images, idx);
-          galleryEl.appendChild(img);
+      // Chart 7: Word Length Brackets
+      if (AppState.charts.lengthBrackets) AppState.charts.lengthBrackets.destroy();
+      const ctxLength = document.getElementById('chart-length-brackets');
+      if (ctxLength) {
+        const lengthLabels = ['<200字', '200-500字', '500-1000字', '>1000字'];
+        const lengthKeys = ['<200', '200-500', '500-1000', '>1000'];
+        AppState.charts.lengthBrackets = new Chart(ctxLength, {
+          type: 'bar',
+          data: {
+            labels: lengthLabels,
+            datasets: [
+              {
+                label: 'hyx 篇数',
+                data: lengthKeys.map(k => stats.A.lengthBrackets[k] || 0),
+                backgroundColor: 'rgba(99, 102, 241, 0.85)',
+                borderRadius: 4
+              },
+              {
+                label: 'cyc 篇数',
+                data: lengthKeys.map(k => stats.B.lengthBrackets[k] || 0),
+                backgroundColor: 'rgba(244, 63, 94, 0.85)',
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { grid: { color: gridColor }, ticks: { color: textColor } },
+              y: { grid: { color: gridColor }, ticks: { color: textColor }, beginAtZero: true }
+            },
+            plugins: { legend: { labels: { color: textColor } } }
+          }
         });
-      } else {
-        galleryEl.style.display = 'none';
       }
 
-      // Comments
-      const comments = moment.comments || [];
-      commentCount.textContent = comments.length;
-      if (comments.length > 0) {
-        commentsBox.style.display = 'block';
-        commentsList.innerHTML = '';
-        comments.forEach(c => {
-          const isA = c.author_id === 'A';
-          const authorName = isA ? AppState.stats.A.nickname : AppState.stats.B.nickname;
-          const authorClass = isA ? 'author-a-text' : 'author-b-text';
-
-          const item = document.createElement('div');
-          item.className = 'comment-item';
-          item.innerHTML = '<div style="display: flex; justify-content: space-between; margin-bottom: 2px;">' +
-            '<span class="comment-author-badge ' + authorClass + '">@' + authorName + '</span>' +
-            '<span style="font-size: 0.7rem; color: var(--text-sub);">' + (c.created_at||'').slice(5, 16) + '</span>' +
-            '</div>' +
-            '<div class="comment-content-text">' + escapeHtml(c.content || '') + '</div>';
-          commentsList.appendChild(item);
+      // Chart 8: Photo Brackets
+      if (AppState.charts.photoBrackets) AppState.charts.photoBrackets.destroy();
+      const ctxPhotoBrackets = document.getElementById('chart-photo-brackets');
+      if (ctxPhotoBrackets) {
+        const pLabels = ['0张纯文本', '1-3张日常', '4-9张多图', '10张以上'];
+        const pKeys = ['0张', '1-3张', '4-9张', '10张+'];
+        AppState.charts.photoBrackets = new Chart(ctxPhotoBrackets, {
+          type: 'bar',
+          data: {
+            labels: pLabels,
+            datasets: [
+              {
+                label: 'hyx 篇数',
+                data: pKeys.map(k => stats.A.photoBrackets[k] || 0),
+                backgroundColor: 'rgba(99, 102, 241, 0.85)',
+                borderRadius: 4
+              },
+              {
+                label: 'cyc 篇数',
+                data: pKeys.map(k => stats.B.photoBrackets[k] || 0),
+                backgroundColor: 'rgba(244, 63, 94, 0.85)',
+                borderRadius: 4
+              }
+            ]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+              x: { grid: { color: gridColor }, ticks: { color: textColor } },
+              y: { grid: { color: gridColor }, ticks: { color: textColor }, beginAtZero: true }
+            },
+            plugins: { legend: { labels: { color: textColor } } }
+          }
         });
-      } else {
-        commentsBox.style.display = 'none';
       }
     }
 
-    // Topics Square Renderer
-    function renderTopics(stats) {
-      const topics = AppState.topics || [];
-      const posts = AppState.posts || [];
-      document.getElementById('topics-total-count').textContent = topics.length;
+    // Render Monthly Table
+    function renderMonthlyTable(stats) {
+      const tbody = document.getElementById('monthly-table-body');
+      if (!tbody) return;
+      tbody.innerHTML = '';
 
-      const listContainer = document.getElementById('topics-list-container');
-      listContainer.innerHTML = '';
+      const months = Object.keys(stats.monthlyData).sort().reverse();
+      months.forEach(m => {
+        const d = stats.monthlyData[m];
+        const totalCount = d.countA + d.countB;
+        const totalChars = d.charsA + d.charsB;
+        const avgCharsA = d.countA ? Math.round(d.charsA / d.countA) : 0;
+        const avgCharsB = d.countB ? Math.round(d.charsB / d.countB) : 0;
+        const avgMoodA = d.moodsA.length ? (d.moodsA.reduce((a, b) => a + b, 0) / d.moodsA.length).toFixed(1) : '-';
+        const avgMoodB = d.moodsB.length ? (d.moodsB.reduce((a, b) => a + b, 0) / d.moodsB.length).toFixed(1) : '-';
 
-      topics.forEach((t, idx) => {
-        const topicPosts = posts.filter(p => p.topic_id === t.id);
-        const card = document.createElement('div');
-        card.className = 'glass-card topic-item-card' + (idx === 0 ? ' active' : '');
-        card.dataset.topicId = t.id;
-
-        const authorName = t.author_id === 'A' ? stats.A.nickname : stats.B.nickname;
-
-        card.innerHTML = '<div class="topic-item-title">' + escapeHtml(t.title) + '</div>' +
-          '<div class="topic-meta-row">' +
-          '<span>发起人: @' + authorName + '</span>' +
-          '<span>' + topicPosts.length + ' 篇发言</span>' +
-          '</div>';
-
-        card.onclick = () => {
-          document.querySelectorAll('.topic-item-card').forEach(el => el.classList.remove('active'));
-          card.classList.add('active');
-          renderTopicThread(t, topicPosts);
-        };
-
-        listContainer.appendChild(card);
-      });
-
-      if (topics.length > 0) {
-        const firstPosts = posts.filter(p => p.topic_id === topics[0].id);
-        renderTopicThread(topics[0], firstPosts);
-      }
-    }
-
-    function renderTopicThread(topic, topicPosts) {
-      document.getElementById('active-topic-title').textContent = topic.title;
-      const authorName = topic.author_id === 'A' ? AppState.stats.A.nickname : AppState.stats.B.nickname;
-      const dateStr = (topic.created_at || '').slice(0, 10);
-      document.getElementById('active-topic-meta').textContent = '发起人: @' + authorName + ' · 发起时间: ' + dateStr + ' · 共 ' + topicPosts.length + ' 条发言';
-
-      const container = document.getElementById('topic-posts-container');
-      container.innerHTML = '';
-
-      topicPosts.forEach(p => {
-        const isA = p.author_id === 'A';
-        const userProfile = isA ? AppState.stats.A : AppState.stats.B;
-
-        const bubble = document.createElement('div');
-        bubble.className = 'post-bubble post-author-' + (isA ? 'a' : 'b');
-
-        bubble.innerHTML = '<img class="post-avatar" src="' + (userProfile.avatarUrl || '') + '" alt="' + userProfile.nickname + '">' +
-          '<div class="post-body">' +
-          '<div style="font-size: 0.75rem; color: var(--text-sub); margin-bottom: 4px;">' +
-          '<strong>@' + userProfile.nickname + '</strong> · ' + (p.created_at||'').slice(5, 16) +
-          '</div>' +
-          '<div>' + escapeHtml(p.content || '') + '</div>' +
-          '</div>';
-
-        container.appendChild(bubble);
+        const tr = document.createElement('tr');
+        tr.innerHTML = '<td><strong>' + m + '</strong></td>' +
+          '<td>' + totalCount + ' 篇 (hyx ' + d.countA + ' / cyc ' + d.countB + ')</td>' +
+          '<td><span style="color: var(--color-a-light);">' + d.charsA.toLocaleString() + '</span> 字 (' + avgCharsA + ')</td>' +
+          '<td><span style="color: var(--color-b-light);">' + d.charsB.toLocaleString() + '</span> 字 (' + avgCharsB + ')</td>' +
+          '<td><strong>' + totalChars.toLocaleString() + '</strong> 字</td>' +
+          '<td>' + (d.photosA + d.photosB) + ' 张 (' + d.photosA + ' / ' + d.photosB + ')</td>' +
+          '<td>' + avgMoodA + ' / ' + avgMoodB + '</td>';
+        tbody.appendChild(tr);
       });
     }
 
-    // Milestones & Badges
+    // Dynamic Statistics Summary Badges (100% Calculated Aggregate Metrics)
     function renderBadges(stats) {
       const container = document.getElementById('milestones-container');
       if (!container) return;
       container.innerHTML = '';
 
+      const dailyChars = stats.together.uniqueDays ? Math.round(stats.together.totalChars / stats.together.uniqueDays) : 0;
+      const dailyPhotos = stats.together.uniqueDays ? (stats.together.totalPhotos / stats.together.uniqueDays).toFixed(1) : '0';
+      const avgCharsA = stats.A.momentsCount ? Math.round(stats.A.totalChars / stats.A.momentsCount) : 0;
+      const avgCharsB = stats.B.momentsCount ? Math.round(stats.B.totalChars / stats.B.momentsCount) : 0;
+
       const badges = [
         {
           icon: '✍️',
-          title: '万字作家',
-          desc: '两人累计写下 ' + stats.together.totalChars.toLocaleString() + ' 字，字里行间皆是生活。'
+          title: '累计合著总字数',
+          desc: '两人累计在日记中写下 ' + stats.together.totalChars.toLocaleString() + ' 字，日均合写产出 ' + dailyChars.toLocaleString() + ' 字。'
         },
         {
           icon: '📸',
-          title: '光影收藏家',
-          desc: '定格了 ' + stats.together.totalPhotos + ' 张温暖照片，珍藏每一处风景与笑容。'
+          title: '珍藏图片总量',
+          desc: '累计上传了 ' + stats.together.totalPhotos + ' 张照片，日均合传 ' + dailyPhotos + ' 张。'
         },
         {
           icon: '🔥',
-          title: '连续筑梦',
-          desc: '达成连续 ' + stats.together.longestStreak + ' 天不间断日记连击，习惯已成自然。'
-        },
-        {
-          icon: '💬',
-          title: '默契共鸣',
-          desc: '互相交换 ' + stats.together.totalComments + ' 条温暖评论与回复，心意相通。'
-        },
-        {
-          icon: '🌙',
-          title: '午夜心语',
-          desc: '超过 70% 的日记在深夜 23:00~01:00 诞生，是彼此的睡前故事。'
-        },
-        {
-          icon: '💖',
-          title: '高甜共鸣日',
-          desc: '共有 ' + stats.together.highMoodBothDays + ' 天双方心情均为 8-10 分的极度开朗之日。'
-        },
-        {
-          icon: '📜',
-          title: '单篇长诗',
-          desc: 'cyc 创下 ' + stats.B.maxCharsInOne + ' 字单篇纪录；hyx 创下 ' + stats.A.maxCharsInOne + ' 字深情长文。'
+          title: '连续打卡最长纪录',
+          desc: stats.together.longestStreak > 0
+            ? ('达成连续 ' + stats.together.longestStreak + ' 天不间断每日记录连击 (' + stats.together.streakStart + ' 至 ' + stats.together.streakEnd + ')。')
+            : '持续记录中。'
         },
         {
           icon: '🤝',
-          title: '双联同心',
-          desc: '在 ' + stats.together.uniqueDays + ' 个记录日中，' + stats.together.bothDays + ' 天实现完美双屏合璧！'
+          title: '双人同心共记天数',
+          desc: '在 ' + stats.together.uniqueDays + ' 个记录日中，共有 ' + stats.together.bothDays + ' 天双方同日合著记录。'
+        },
+        {
+          icon: '💖',
+          title: '双方高甜同乐日',
+          desc: '共有 ' + stats.together.highMoodBothDays + ' 天双方心情评分同时达到 8-10 分高分区间。'
+        },
+        {
+          icon: '💬',
+          title: '双向互动留言总量',
+          desc: '在彼此日记下方累计留下了 ' + stats.together.totalComments + ' 条留言评论。'
+        },
+        {
+          icon: '⚡',
+          title: '发文时序领先统计',
+          desc: '双人同写日中，cyc 率先发文 ' + stats.B.firstPostCount + ' 天；hyx 率先发文 ' + stats.A.firstPostCount + ' 天。'
+        },
+        {
+          icon: '📈',
+          title: '篇均文字产出水平',
+          desc: 'cyc 篇均 ' + avgCharsB + ' 字；hyx 篇均 ' + avgCharsA + ' 字。'
         }
       ];
 
@@ -8071,106 +7023,124 @@
           '</div>';
         container.appendChild(card);
       });
-
-      // Timeline List
-      const timelineList = document.getElementById('milestones-timeline-list');
-      if (timelineList) {
-        timelineList.innerHTML = '<div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.8;">' +
-          '🌱 <strong>2026-02-02</strong> · 开启第一篇 Diptych 双联日记记录之旅<br>' +
-          '🚀 <strong>2026-07-04</strong> · 开启长达 48 天的每日全勤连续打卡里程碑<br>' +
-          '💡 <strong>2026-07-22</strong> · 话题广场首个话题《睡不着想到的一个肤浅话题》开启互动热聊<br>' +
-          '🎉 <strong>2026-08-10</strong> · 迎来单日最高照片上传日（单日 27 张光影珍藏）<br>' +
-          '✍️ <strong>2026-08-18</strong> · 创下最长单篇日记纪录（cyc 写下 1,850 字）<br>' +
-          '🏆 <strong>2026-08-20</strong> · 达成累计突破 54,000 字、540 张照片的双联里程碑！' +
-          '</div>';
-      }
     }
 
-    // Lightbox Modal
-    function openLightbox(imgList, index) {
-      AppState.currentLightboxList = imgList;
-      AppState.currentLightboxIndex = index;
-      updateLightboxView();
-      document.getElementById('lightbox-modal').style.display = 'flex';
-    }
+    // Dynamic History Milestones Timeline (100% Calculated)
+    function renderMilestonesTimeline(stats) {
+      const container = document.getElementById('milestones-timeline-container');
+      if (!container) return;
+      container.innerHTML = '';
 
-    function updateLightboxView() {
-      const url = AppState.currentLightboxList[AppState.currentLightboxIndex];
-      document.getElementById('lightbox-img-element').src = url;
-      document.getElementById('lightbox-download-link').href = url;
-      document.getElementById('lightbox-counter').textContent = (AppState.currentLightboxIndex + 1) + ' / ' + AppState.currentLightboxList.length;
-    }
+      if (!stats.dates.length) return;
 
-    function prevLightboxImg() {
-      if (AppState.currentLightboxIndex > 0) {
-        AppState.currentLightboxIndex--;
-        updateLightboxView();
-      }
-    }
+      // Calculate cumulative thresholds
+      let cumChars = 0;
+      let cumPhotos = 0;
+      let crossed10kWords = '';
+      let crossed30kWords = '';
+      let crossed50kWords = '';
+      let crossed100Photos = '';
+      let crossed300Photos = '';
+      let crossed500Photos = '';
 
-    function nextLightboxImg() {
-      if (AppState.currentLightboxIndex < AppState.currentLightboxList.length - 1) {
-        AppState.currentLightboxIndex++;
-        updateLightboxView();
-      }
-    }
-
-    function closeLightbox(e) {
-      if (!e || e.target.id === 'lightbox-modal' || e.target.classList.contains('modal-close-btn')) {
-        document.getElementById('lightbox-modal').style.display = 'none';
-      }
-    }
-
-    // Upload & Data Source Modal
-    function openUploadModal() {
-      document.getElementById('upload-modal').style.display = 'flex';
-    }
-    function closeUploadModal(e) {
-      if (!e || e.target.id === 'upload-modal' || e.target.classList.contains('modal-close-btn') || e.target.classList.contains('btn-primary')) {
-        document.getElementById('upload-modal').style.display = 'none';
-      }
-    }
-
-    function resetDefaultData() {
-      AppState.moments = window.INITIAL_DATA.moments;
-      AppState.users = window.INITIAL_DATA.users;
-      AppState.topics = window.INITIAL_DATA.topics;
-      AppState.posts = window.INITIAL_DATA.posts;
-      recomputeAndRender();
-      closeUploadModal();
-      alert('已恢复为初始数据！');
-    }
-
-    // Tab Switching
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.tab === tabId);
+      stats.dates.forEach(d => {
+        const v = stats.dateMap[d];
+        cumChars += v.chars;
+        cumPhotos += v.photos;
+        if (!crossed10kWords && cumChars >= 10000) crossed10kWords = d;
+        if (!crossed30kWords && cumChars >= 30000) crossed30kWords = d;
+        if (!crossed50kWords && cumChars >= 50000) crossed50kWords = d;
+        if (!crossed100Photos && cumPhotos >= 100) crossed100Photos = d;
+        if (!crossed300Photos && cumPhotos >= 300) crossed300Photos = d;
+        if (!crossed500Photos && cumPhotos >= 500) crossed500Photos = d;
       });
-      document.querySelectorAll('.tab-content-pane').forEach(pane => {
-        pane.classList.toggle('hidden', pane.id !== tabId);
+
+      const timelineItems = [];
+
+      // Start Date
+      timelineItems.push({
+        date: stats.dates[0],
+        icon: '🌱',
+        title: '启航之日',
+        desc: '开启第一篇 Diptych 双联日记记录。'
       });
-      if (tabId === 'tab-charts') {
-        setTimeout(() => {
-          Object.values(AppState.charts).forEach(c => c && c.resize && c.resize());
-        }, 50);
+
+      // Word milestones
+      if (crossed10kWords) {
+        timelineItems.push({
+          date: crossed10kWords,
+          icon: '✍️',
+          title: '突破一万字',
+          desc: '累计合著文字首次突破 10,000 字关口。'
+        });
       }
+      if (crossed100Photos) {
+        timelineItems.push({
+          date: crossed100Photos,
+          icon: '📸',
+          title: '百张光影定格',
+          desc: '累计上传照片首次突破 100 张。'
+        });
+      }
+      if (crossed30kWords) {
+        timelineItems.push({
+          date: crossed30kWords,
+          icon: '✍️',
+          title: '突破三万字',
+          desc: '累计合著文字突破 30,000 字里程碑。'
+        });
+      }
+      if (crossed300Photos) {
+        timelineItems.push({
+          date: crossed300Photos,
+          icon: '📸',
+          title: '三百张照片达成',
+          desc: '累计上传照片突破 300 张。'
+        });
+      }
+      if (crossed50kWords) {
+        timelineItems.push({
+          date: crossed50kWords,
+          icon: '🏆',
+          title: '突破五万字大关',
+          desc: '累计合著文字正式跨越 50,000 字大关！'
+        });
+      }
+      if (crossed500Photos) {
+        timelineItems.push({
+          date: crossed500Photos,
+          icon: '📸',
+          title: '五百张光影达成',
+          desc: '累计上传照片跨越 500 张大关！'
+        });
+      }
+      if (stats.together.longestStreak >= 5 && stats.together.streakEnd) {
+        timelineItems.push({
+          date: stats.together.streakEnd,
+          icon: '🔥',
+          title: '达成 ' + stats.together.longestStreak + ' 天连续连击',
+          desc: '创下自 ' + stats.together.streakStart + ' 起连续 ' + stats.together.longestStreak + ' 天不间断每日打卡纪录！'
+        });
+      }
+
+      // Sort chronological and deduplicate
+      timelineItems.sort((a, b) => a.date.localeCompare(b.date));
+
+      timelineItems.forEach(item => {
+        const div = document.createElement('div');
+        div.className = 'timeline-item';
+        div.innerHTML = item.icon + ' <strong>' + item.date + ' · ' + item.title + '</strong><br>' + item.desc;
+        container.appendChild(div);
+      });
     }
 
     // Event Handlers
     function initEvents() {
-      // Tab Buttons
-      document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => switchTab(btn.dataset.tab));
-      });
-
       // Refresh Button
       document.getElementById('btn-refresh').addEventListener('click', async () => {
-        await tryFetchBackendData();
+        await tryFetchMomentsData();
         recomputeAndRender();
       });
-
-      // Upload Modal Trigger
-      document.getElementById('btn-open-upload').addEventListener('click', openUploadModal);
 
       // Confetti Blast
       document.getElementById('btn-confetti').addEventListener('click', () => {
@@ -8185,91 +7155,6 @@
 
       // Theme Toggle
       document.getElementById('btn-theme-toggle').addEventListener('click', toggleTheme);
-
-      // Category Filter
-      document.getElementById('tm-category-filter').addEventListener('change', applyTimeMachineFilter);
-
-      // Time Machine Nav
-      document.getElementById('tm-prev-day').addEventListener('click', () => {
-        const dates = AppState.filteredDates.length ? AppState.filteredDates : AppState.stats.dates;
-        const idx = dates.indexOf(AppState.selectedDate);
-        if (idx > 0) jumpToDate(dates[idx - 1]);
-      });
-
-      document.getElementById('tm-next-day').addEventListener('click', () => {
-        const dates = AppState.filteredDates.length ? AppState.filteredDates : AppState.stats.dates;
-        const idx = dates.indexOf(AppState.selectedDate);
-        if (idx < dates.length - 1) jumpToDate(dates[idx + 1]);
-      });
-
-      document.getElementById('tm-random-day').addEventListener('click', () => {
-        const dates = AppState.filteredDates.length ? AppState.filteredDates : AppState.stats.dates;
-        const rand = dates[Math.floor(Math.random() * dates.length)];
-        if (rand) jumpToDate(rand);
-      });
-
-      document.getElementById('tm-date-dropdown').addEventListener('change', (e) => {
-        jumpToDate(e.target.value);
-      });
-
-      // Search Filter
-      document.getElementById('tm-search-input').addEventListener('input', (e) => {
-        const q = e.target.value.trim().toLowerCase();
-        if (!q) return;
-        const found = AppState.stats.dates.find(d => {
-          const info = AppState.stats.dateMap[d];
-          const textA = (info.A?.feeling || '') + ' ' + (info.A?.comments || []).map(c => c.content).join(' ');
-          const textB = (info.B?.feeling || '') + ' ' + (info.B?.comments || []).map(c => c.content).join(' ');
-          return textA.toLowerCase().includes(q) || textB.toLowerCase().includes(q);
-        });
-        if (found) jumpToDate(found);
-      });
-
-      // File Drag & Drop
-      const dropZone = document.getElementById('drop-zone');
-      const fileInput = document.getElementById('file-input-json');
-
-      dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
-      dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-      dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('dragover');
-        if (e.dataTransfer.files) handleJsonFiles(e.dataTransfer.files);
-      });
-
-      fileInput.addEventListener('change', (e) => {
-        if (e.target.files) handleJsonFiles(e.target.files);
-      });
-
-      // Keyboard Shortcuts for Lightbox
-      window.addEventListener('keydown', (e) => {
-        if (document.getElementById('lightbox-modal').style.display === 'flex') {
-          if (e.key === 'Escape') closeLightbox();
-          if (e.key === 'ArrowLeft') prevLightboxImg();
-          if (e.key === 'ArrowRight') nextLightboxImg();
-        }
-      });
-    }
-
-    function handleJsonFiles(files) {
-      Array.from(files).forEach(file => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          try {
-            const data = JSON.parse(e.target.result);
-            if (file.name.includes('moments')) AppState.moments = data;
-            else if (file.name.includes('users')) AppState.users = data;
-            else if (file.name.includes('topics')) AppState.topics = data;
-            else if (file.name.includes('posts')) AppState.posts = data;
-            else if (Array.isArray(data) && data[0] && data[0].feeling !== undefined) AppState.moments = data;
-            recomputeAndRender();
-          } catch (err) {
-            console.error('Error parsing JSON:', err);
-          }
-        };
-        reader.readAsText(file);
-      });
-      closeUploadModal();
     }
 
     // Theme Switcher
@@ -8291,12 +7176,6 @@
     function updateThemeIcons(theme) {
       document.getElementById('theme-icon-moon').classList.toggle('hidden', theme === 'dark');
       document.getElementById('theme-icon-sun').classList.toggle('hidden', theme === 'light');
-    }
-
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
     }
   </script>
 </body>
