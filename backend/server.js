@@ -693,21 +693,26 @@ registerRoute('put', '/moments/:id', (req, res) => {
     return res.json({ ok: true });
 });
 
-registerRoute('get', '/moments/:uid/dates', (req, res) => {
-    const uid = req.params.uid;
-    const users = readJsonArray(usersFile);
-    if (!users.some(u => u.uid === uid)) {
-        return fail(res, 404, '用户不存在');
+registerRoute('get', '/moments/calendar/dates', (req, res) => {
+    const moments = readJsonArray(momentsFile);
+    const datesByAuthor = {};
+    for (const m of moments) {
+        if (!m.author_id || !m.date_str) continue;
+        if (!datesByAuthor[m.author_id]) {
+            datesByAuthor[m.author_id] = new Set();
+        }
+        datesByAuthor[m.author_id].add(m.date_str);
     }
-
-    const dates = [...new Set(
-        readJsonArray(momentsFile)
-            .filter(m => m.author_id === uid)
-            .map(m => m.date_str)
-    )].sort();
-
-    return ok(res, dates);
+    const result = {};
+    for (const [authorId, dateSet] of Object.entries(datesByAuthor)) {
+        result[authorId] = Array.from(dateSet).sort();
+    }
+    if (!result['A']) result['A'] = [];
+    if (!result['B']) result['B'] = [];
+    return ok(res, result);
 });
+
+
 
 // ─── 话题讨论 API ───
 const topicsFile = path.join(dataDir, 'topics.json');

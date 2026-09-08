@@ -1,5 +1,5 @@
 {
-  "version": "1.1.9",
-  "version_code": 26,
-  "release_notes": "上传照片时默认静态照片，可以在上传前选择上传实况照片"
+  "version": "1.1.11",
+  "version_code": 28,
+  "release_notes": "修复部分已知问题，优化上传照片逻辑，优化日记选择日期页面"
 }
