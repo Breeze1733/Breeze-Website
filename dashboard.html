@@ -26,18 +26,18 @@
       --text-muted: #94a3b8;
       --text-sub: #64748b;
       
-      --color-a: #6366f1;
-      --color-a-light: #818cf8;
-      --color-a-glow: rgba(99, 102, 241, 0.28);
-      --color-a-bg: rgba(99, 102, 241, 0.12);
+      --color-a: #38BDF8;
+      --color-a-light: #7dd3fc;
+      --color-a-glow: rgba(56, 189, 248, 0.28);
+      --color-a-bg: rgba(56, 189, 248, 0.12);
       
-      --color-b: #f43f5e;
-      --color-b-light: #fb7185;
-      --color-b-glow: rgba(244, 63, 94, 0.28);
-      --color-b-bg: rgba(244, 63, 94, 0.12);
+      --color-b: #FDA4AF;
+      --color-b-light: #fecdd3;
+      --color-b-glow: rgba(253, 164, 175, 0.28);
+      --color-b-bg: rgba(253, 164, 175, 0.12);
       
-      --color-together: #a855f7;
-      --color-together-light: #c084fc;
+      --color-together: #A78BFA;
+      --color-together-light: #c4b5fd;
       --color-gold: #f59e0b;
       --color-emerald: #10b981;
       --color-sky: #0ea5e9;
@@ -65,15 +65,18 @@
       --text-muted: #475569;
       --text-sub: #94a3b8;
       
-      --color-a: #4f46e5;
-      --color-a-light: #6366f1;
-      --color-a-glow: rgba(79, 70, 229, 0.2);
-      --color-a-bg: rgba(79, 70, 229, 0.08);
+      --color-a: #38BDF8;
+      --color-a-light: #7dd3fc;
+      --color-a-glow: rgba(56, 189, 248, 0.2);
+      --color-a-bg: rgba(56, 189, 248, 0.08);
       
-      --color-b: #e11d48;
-      --color-b-light: #f43f5e;
-      --color-b-glow: rgba(225, 29, 72, 0.2);
-      --color-b-bg: rgba(225, 29, 72, 0.08);
+      --color-b: #FDA4AF;
+      --color-b-light: #fecdd3;
+      --color-b-glow: rgba(253, 164, 175, 0.2);
+      --color-b-bg: rgba(253, 164, 175, 0.08);
+
+      --color-together: #A78BFA;
+      --color-together-light: #c4b5fd;
       
       --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.06);
       --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.08);
@@ -187,7 +190,7 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 8px 20px rgba(99, 102, 241, 0.35);
+      box-shadow: 0 8px 20px rgba(56, 189, 248, 0.35);
     }
     .brand-logo svg {
       width: 30px;
@@ -472,8 +475,8 @@
       flex-direction: column;
       justify-content: space-between;
       text-align: center;
-      background: linear-gradient(180deg, var(--bg-surface) 0%, rgba(168, 85, 247, 0.08) 100%);
-      border: 1px solid rgba(168, 85, 247, 0.2);
+      background: linear-gradient(180deg, var(--bg-surface) 0%, rgba(167, 139, 250, 0.08) 100%);
+      border: 1px solid rgba(167, 139, 250, 0.2);
     }
     .harmony-title {
       font-size: 1.1rem;
@@ -517,8 +520,8 @@
     }
 
     .synergy-badge {
-      background: rgba(168, 85, 247, 0.15);
-      border: 1px solid rgba(168, 85, 247, 0.3);
+      background: rgba(167, 139, 250, 0.15);
+      border: 1px solid rgba(167, 139, 250, 0.3);
       padding: 12px;
       border-radius: var(--radius-md);
       margin-top: 10px;
@@ -568,7 +571,7 @@
     .year-btn.active {
       background: var(--color-together);
       color: #ffffff;
-      box-shadow: 0 2px 8px rgba(168, 85, 247, 0.35);
+      box-shadow: 0 2px 8px rgba(167, 139, 250, 0.35);
     }
 
     .heatmap-legend {
@@ -589,7 +592,7 @@
       height: 12px;
       border-radius: 3px;
     }
-    .legend-both { background: linear-gradient(135deg, var(--color-a), var(--color-b)); }
+    .legend-both { background: linear-gradient(135deg, var(--color-a), var(--color-b)); box-shadow: 0 0 4px #A78BFA; }
     .legend-a { background: var(--color-a); }
     .legend-b { background: var(--color-b); }
     .legend-none { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); }
@@ -631,7 +634,7 @@
     .heatmap-cell.status-both {
       background: linear-gradient(135deg, var(--color-a), var(--color-b));
       border: none;
-      box-shadow: 0 0 6px rgba(168, 85, 247, 0.4);
+      box-shadow: 0 0 6px #A78BFA;
     }
     .heatmap-cell.status-a {
       background: var(--color-a);
@@ -869,7 +872,7 @@
       <div class="glass-card kpi-card" style="--card-accent: var(--color-together);">
         <div class="kpi-header">
           <span class="kpi-title">共记天数 / 篇数</span>
-          <div class="kpi-icon-box" style="--icon-bg: rgba(168, 85, 247, 0.15); --icon-color: var(--color-together);">
+          <div class="kpi-icon-box" style="--icon-bg: rgba(167, 139, 250, 0.15); --icon-color: var(--color-together);">
             📅
           </div>
         </div>
@@ -1762,7 +1765,7 @@
             if (dayData.A && dayData.B) {
               const totalChars = (dayData.A.feeling||'').length + (dayData.B.feeling||'').length;
               const totalPhotos = (dayData.A.image_urls||[]).length + (dayData.B.image_urls||[]).length;
-              content += '✨ <span style="color: #a855f7;">双人同写日</span><br>';
+              content += '✨ <span style="color: #A78BFA;">双人同写日</span><br>';
               content += '合著: <strong>' + totalChars.toLocaleString() + '</strong> 字 · <strong>' + totalPhotos + '</strong> 张图<br>';
               content += 'hyx: ' + (dayData.A.feeling||'').length + '字 · ' + (dayData.A.image_urls||[]).length + '图 · 心情 ' + (dayData.A.mood||'-') + '<br>';
               content += 'cyc: ' + (dayData.B.feeling||'').length + '字 · ' + (dayData.B.image_urls||[]).length + '图 · 心情 ' + (dayData.B.mood||'-');
@@ -1814,8 +1817,8 @@
               {
                 label: 'hyx 字数',
                 data: stats.timelineData.map(d => d.charsA),
-                borderColor: '#6366f1',
-                backgroundColor: 'rgba(99, 102, 241, 0.18)',
+                borderColor: '#38BDF8',
+                backgroundColor: 'rgba(56, 189, 248, 0.18)',
                 fill: true,
                 tension: 0.35,
                 borderWidth: 2,
@@ -1825,8 +1828,8 @@
               {
                 label: 'cyc 字数',
                 data: stats.timelineData.map(d => d.charsB),
-                borderColor: '#f43f5e',
-                backgroundColor: 'rgba(244, 63, 94, 0.18)',
+                borderColor: '#FDA4AF',
+                backgroundColor: 'rgba(253, 164, 175, 0.18)',
                 fill: true,
                 tension: 0.35,
                 borderWidth: 2,
@@ -1862,8 +1865,8 @@
               {
                 label: 'hyx 心情分 (1-10)',
                 data: stats.timelineData.map(d => d.moodA),
-                borderColor: '#818cf8',
-                backgroundColor: '#818cf8',
+                borderColor: '#38BDF8',
+                backgroundColor: '#38BDF8',
                 borderWidth: 2.5,
                 pointRadius: 3.5,
                 pointHoverRadius: 7,
@@ -1873,8 +1876,8 @@
               {
                 label: 'cyc 心情分 (1-10)',
                 data: stats.timelineData.map(d => d.moodB),
-                borderColor: '#fb7185',
-                backgroundColor: '#fb7185',
+                borderColor: '#FDA4AF',
+                backgroundColor: '#FDA4AF',
                 borderWidth: 2.5,
                 pointRadius: 3.5,
                 pointHoverRadius: 7,
@@ -1910,16 +1913,16 @@
               {
                 label: 'hyx 写作时段',
                 data: stats.A.hoursDist,
-                borderColor: '#6366f1',
-                backgroundColor: 'rgba(99, 102, 241, 0.25)',
+                borderColor: '#38BDF8',
+                backgroundColor: 'rgba(56, 189, 248, 0.25)',
                 borderWidth: 2,
                 pointRadius: 2
               },
               {
                 label: 'cyc 写作时段',
                 data: stats.B.hoursDist,
-                borderColor: '#f43f5e',
-                backgroundColor: 'rgba(244, 63, 94, 0.25)',
+                borderColor: '#FDA4AF',
+                backgroundColor: 'rgba(253, 164, 175, 0.25)',
                 borderWidth: 2,
                 pointRadius: 2
               }
@@ -1953,13 +1956,13 @@
               {
                 label: 'hyx 篇数',
                 data: stats.A.weekdayDist,
-                backgroundColor: 'rgba(99, 102, 241, 0.85)',
+                backgroundColor: 'rgba(56, 189, 248, 0.85)',
                 borderRadius: 6
               },
               {
                 label: 'cyc 篇数',
                 data: stats.B.weekdayDist,
-                backgroundColor: 'rgba(244, 63, 94, 0.85)',
+                backgroundColor: 'rgba(253, 164, 175, 0.85)',
                 borderRadius: 6
               }
             ]
@@ -1987,13 +1990,13 @@
               {
                 label: 'hyx 图片数',
                 data: stats.timelineData.slice(-18).map(d => d.photosA),
-                backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                backgroundColor: 'rgba(56, 189, 248, 0.8)',
                 borderRadius: 4
               },
               {
                 label: 'cyc 图片数',
                 data: stats.timelineData.slice(-18).map(d => d.photosB),
-                backgroundColor: 'rgba(244, 63, 94, 0.8)',
+                backgroundColor: 'rgba(253, 164, 175, 0.8)',
                 borderRadius: 4
               }
             ]
@@ -2022,13 +2025,13 @@
               {
                 label: 'hyx 打分频次',
                 data: moodLabels.map((_, i) => stats.A.moodDist[i+1] || 0),
-                backgroundColor: 'rgba(99, 102, 241, 0.8)',
+                backgroundColor: 'rgba(56, 189, 248, 0.8)',
                 borderRadius: 4
               },
               {
                 label: 'cyc 打分频次',
                 data: moodLabels.map((_, i) => stats.B.moodDist[i+1] || 0),
-                backgroundColor: 'rgba(244, 63, 94, 0.8)',
+                backgroundColor: 'rgba(253, 164, 175, 0.8)',
                 borderRadius: 4
               }
             ]
@@ -2058,13 +2061,13 @@
               {
                 label: 'hyx 篇数',
                 data: lengthKeys.map(k => stats.A.lengthBrackets[k] || 0),
-                backgroundColor: 'rgba(99, 102, 241, 0.85)',
+                backgroundColor: 'rgba(56, 189, 248, 0.85)',
                 borderRadius: 4
               },
               {
                 label: 'cyc 篇数',
                 data: lengthKeys.map(k => stats.B.lengthBrackets[k] || 0),
-                backgroundColor: 'rgba(244, 63, 94, 0.85)',
+                backgroundColor: 'rgba(253, 164, 175, 0.85)',
                 borderRadius: 4
               }
             ]
@@ -2094,13 +2097,13 @@
               {
                 label: 'hyx 篇数',
                 data: pKeys.map(k => stats.A.photoBrackets[k] || 0),
-                backgroundColor: 'rgba(99, 102, 241, 0.85)',
+                backgroundColor: 'rgba(56, 189, 248, 0.85)',
                 borderRadius: 4
               },
               {
                 label: 'cyc 篇数',
                 data: pKeys.map(k => stats.B.photoBrackets[k] || 0),
-                backgroundColor: 'rgba(244, 63, 94, 0.85)',
+                backgroundColor: 'rgba(253, 164, 175, 0.85)',
                 borderRadius: 4
               }
             ]
