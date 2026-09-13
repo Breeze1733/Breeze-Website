@@ -5,7 +5,10 @@
   "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js"
+    "start": "node server.js",
+    "check-uploads": "node clean-uploads.js",
+    "clean-uploads": "node clean-uploads.js --clean --backup",
+    "stat-images": "node clean-uploads.js --stat"
   },
   "keywords": [],
   "author": "",

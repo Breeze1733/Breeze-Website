@@ -41,3 +41,6 @@ backend/apk
 Thumbs.db
 
 audio/
+
+backend/clean-uploads.js
+backend/chunks_temp/backend/uploads_backup*/

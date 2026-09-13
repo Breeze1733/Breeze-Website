@@ -281,30 +281,138 @@ if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-const upload = multer({
+const chunksDir = path.join(__dirname, 'chunks_temp');
+if (!fs.existsSync(chunksDir)) {
+    fs.mkdirSync(chunksDir, { recursive: true });
+}
+
+const chunkUpload = multer({
     storage: multer.diskStorage({
-        destination: uploadsDir,
-        filename: (_req, file, cb) => {
-            const ext = path.extname(file.originalname);
-            const name = Date.now().toString(36) + Math.random().toString(36).slice(2, 8) + ext;
-            cb(null, name);
+        destination: (req, _file, cb) => {
+            const uploadId = (req.body && req.body.upload_id)
+                ? String(req.body.upload_id).replace(/[^a-zA-Z0-9_-]/g, '')
+                : ((req.query && req.query.upload_id) ? String(req.query.upload_id).replace(/[^a-zA-Z0-9_-]/g, '') : 'default');
+            const taskDir = path.join(chunksDir, uploadId);
+            if (!fs.existsSync(taskDir)) {
+                fs.mkdirSync(taskDir, { recursive: true });
+            }
+            cb(null, taskDir);
+        },
+        filename: (req, _file, cb) => {
+            const chunkIndex = (req.body && req.body.chunk_index !== undefined)
+                ? String(req.body.chunk_index).replace(/[^0-9]/g, '')
+                : ((req.query && req.query.chunk_index !== undefined) ? String(req.query.chunk_index).replace(/[^0-9]/g, '') : '0');
+            cb(null, chunkIndex);
         }
     }),
-    fileFilter: (_req, file, cb) => {
-        const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
-        const ext = path.extname(file.originalname).toLowerCase();
-        cb(null, allowed.includes(ext));
+    limits: {
+        fileSize: 15 * 1024 * 1024
     }
 });
 
-// 上传图片
-registerRoute('post', '/upload', upload.single('file'), (req, res) => {
+// 分片上传接口（完全采用分片切片上传，单片 1MB 彻底规避网关超时）
+registerRoute('post', '/upload/chunk', chunkUpload.single('file'), (req, res) => {
     if (!req.file) {
-        return fail(res, 400, '请选择 jpg/png/webp 图片');
+        return fail(res, 400, '分片数据不能为空');
     }
-    const url = `https://breeze.qzz.io/api/uploads/${req.file.filename}`;
-    return ok(res, { url });
+    const { upload_id, chunk_index, total_chunks } = req.body || {};
+    return ok(res, {
+        upload_id,
+        chunk_index: Number(chunk_index),
+        total_chunks: Number(total_chunks)
+    });
 });
+
+// 合并分片接口
+registerRoute('post', '/upload/merge', async (req, res) => {
+    const { upload_id, filename, total_chunks } = req.body || {};
+    if (!upload_id || total_chunks === undefined) {
+        return fail(res, 400, '参数不完整 (upload_id 与 total_chunks 必填)');
+    }
+    const safeUploadId = String(upload_id).replace(/[^a-zA-Z0-9_-]/g, '');
+    const taskDir = path.join(chunksDir, safeUploadId);
+    if (!fs.existsSync(taskDir)) {
+        return fail(res, 404, '分片任务不存在或已过期');
+    }
+
+    const count = Number(total_chunks);
+    if (isNaN(count) || count <= 0) {
+        return fail(res, 400, 'total_chunks 格式无效');
+    }
+
+    // 校验所有切片是否全部到齐
+    for (let i = 0; i < count; i++) {
+        const chunkPath = path.join(taskDir, String(i));
+        if (!fs.existsSync(chunkPath)) {
+            return fail(res, 400, '分片不完整，缺少第 ' + i + ' 片');
+        }
+    }
+
+    // 生成正式图片文件名
+    const rawExt = path.extname(filename || '').toLowerCase();
+    const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
+    const ext = allowed.includes(rawExt) ? rawExt : '.jpg';
+    const finalName = Date.now().toString(36) + Math.random().toString(36).slice(2, 8) + ext;
+    const finalPath = path.join(uploadsDir, finalName);
+
+    try {
+        const writeStream = fs.createWriteStream(finalPath);
+        for (let i = 0; i < count; i++) {
+            const chunkPath = path.join(taskDir, String(i));
+            const buf = await fs.promises.readFile(chunkPath);
+            writeStream.write(buf);
+        }
+        await new Promise((resolve, reject) => {
+            writeStream.end(resolve);
+            writeStream.on('error', reject);
+        });
+
+        // 异步安全清理该任务的临时分片目录
+        fs.rm(taskDir, { recursive: true, force: true }, () => {});
+
+        const url = `https://breeze.qzz.io/api/uploads/${finalName}`;
+        return ok(res, { url });
+    } catch (err) {
+        console.error('合并切片失败:', err);
+        return fail(res, 500, `文件合并失败: ${err.message}`);
+    }
+});
+
+// 取消分片上传并立即清理临时分片
+registerRoute('post', '/upload/abort', (req, res) => {
+    const { upload_id } = req.body || {};
+    if (!upload_id) {
+        return fail(res, 400, 'upload_id 不能为空');
+    }
+    const safeUploadId = String(upload_id).replace(/[^a-zA-Z0-9_-]/g, '');
+    const taskDir = path.join(chunksDir, safeUploadId);
+    if (fs.existsSync(taskDir)) {
+        fs.rm(taskDir, { recursive: true, force: true }, () => {});
+    }
+    return ok(res, { message: '分片已清理' });
+});
+
+// 定时清理超过 12 小时未合并的孤儿分片目录（每 6 小时检查一次）
+function cleanExpiredChunks() {
+    if (!fs.existsSync(chunksDir)) return;
+    const now = Date.now();
+    const expireMs = 12 * 60 * 60 * 1000;
+    fs.readdir(chunksDir, { withFileTypes: true }, (err, entries) => {
+        if (err || !entries) return;
+        for (const entry of entries) {
+            if (entry.isDirectory()) {
+                const dirPath = path.join(chunksDir, entry.name);
+                fs.stat(dirPath, (statErr, stats) => {
+                    if (!statErr && now - stats.mtimeMs > expireMs) {
+                        fs.rm(dirPath, { recursive: true, force: true }, () => {});
+                    }
+                });
+            }
+        }
+    });
+}
+setInterval(cleanExpiredChunks, 6 * 60 * 60 * 1000);
+cleanExpiredChunks();
 
 // 删除图片
 registerRoute('post', '/upload/delete', (req, res) => {
