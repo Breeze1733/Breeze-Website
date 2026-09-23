@@ -801,6 +801,76 @@ registerRoute('put', '/moments/:id', (req, res) => {
     return res.json({ ok: true });
 });
 
+// 搜索日记内容（从新到旧倒序扫描，断点游标续搜，每批 limit 条）
+registerRoute('get', '/moments/search', (req, res) => {
+    const { keyword, q, author_ids: authorIds, limit = 10, cursor } = req.query;
+    const query = String(keyword || q || '').trim().toLowerCase();
+    if (!query) {
+        return fail(res, 400, '搜索关键词不能为空');
+    }
+
+    const uidList = authorIds ? sanitizeUidList(String(authorIds)) : [];
+    const limitNum = Math.max(1, Math.min(50, parseInt(limit, 10) || 10));
+
+    // 获取所有日记并按时间从新到旧排序（从下往上）
+    const moments = readJsonArray(momentsFile);
+    const candidateMoments = uidList.length > 0 
+        ? moments.filter(m => uidList.includes(m.author_id)) 
+        : moments;
+
+    candidateMoments.sort((a, b) => {
+        const dateCmp = (b.date_str || '').localeCompare(a.date_str || '');
+        if (dateCmp !== 0) return dateCmp;
+        return (b.created_at || '').localeCompare(a.created_at || '');
+    });
+
+    // 定位扫描起点：若有 cursor，直接从暂停的下一条恢复扫描
+    let startIndex = 0;
+    if (cursor) {
+        const cursorIdx = candidateMoments.findIndex(m => String(m.id) === String(cursor));
+        if (cursorIdx !== -1) {
+            startIndex = cursorIdx + 1;
+        }
+    }
+
+    const matchedItems = [];
+    let lastScannedId = null;
+    let nextIndex = startIndex;
+
+    while (nextIndex < candidateMoments.length && matchedItems.length < limitNum) {
+        const m = candidateMoments[nextIndex];
+        lastScannedId = m.id;
+
+        const feeling = String(m.feeling || '');
+        const hasFeelingMatch = feeling.toLowerCase().includes(query);
+
+        let hasCommentMatch = false;
+        if (Array.isArray(m.comments)) {
+            for (const c of m.comments) {
+                if (String(c.content || '').toLowerCase().includes(query)) {
+                    hasCommentMatch = true;
+                    break;
+                }
+            }
+        }
+
+        if (hasFeelingMatch || hasCommentMatch) {
+            matchedItems.push(normalizeMomentRecord(m));
+        }
+
+        nextIndex++;
+    }
+
+    const hasMore = nextIndex < candidateMoments.length;
+    const nextCursor = hasMore ? lastScannedId : null;
+
+    return ok(res, {
+        items: matchedItems,
+        has_more: hasMore,
+        next_cursor: nextCursor
+    });
+});
+
 registerRoute('get', '/moments/calendar/dates', (req, res) => {
     const moments = readJsonArray(momentsFile);
     const datesByAuthor = {};
