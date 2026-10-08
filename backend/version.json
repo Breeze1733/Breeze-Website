@@ -1,5 +1,5 @@
 {
-  "version": "1.1.16",
-  "version_code": 33,
-  "release_notes": "新增查询功能，可以查询某一内容出现在哪一天的日记，方便回忆某天的心情；修复了壁纸无法裁剪的问题"
+  "version": "1.1.18",
+  "version_code": 35,
+  "release_notes": "修复 容易误触底栏弹窗清空草稿 的问题"
 }
