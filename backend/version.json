@@ -1,5 +1,5 @@
 {
-  "version": "1.1.18",
-  "version_code": 35,
-  "release_notes": "修复 容易误触底栏弹窗清空草稿 的问题"
+  "version": "1.1.19",
+  "version_code": 36,
+  "release_notes": "修复了自己上传的日记还需要重新缓存的问题"
 }
