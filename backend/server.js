@@ -275,6 +275,9 @@ ensureDataFiles();
 ensurePresetUsers();
 migrateMomentRecords();
 
+// Dashboard statistics: local aggregates only.
+require('./analytics/dashboard-route').installDashboardStats({ registerRoute, momentsFile });
+
 // ─── 图片上传配置 ───
 const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -526,7 +529,8 @@ registerRoute('get', '/users/:uid', (req, res) => {
         ...user,
         avatar_url: normalizeUploadUrl(user.avatar_url),
         wallpaper_diary_url: normalizeUploadUrl(user.wallpaper_diary_url),
-        wallpaper_topic_url: normalizeUploadUrl(user.wallpaper_topic_url)
+        wallpaper_topic_url: normalizeUploadUrl(user.wallpaper_topic_url),
+        card_opacity: user.card_opacity ?? 235 / 255
     });
 });
 
@@ -554,7 +558,7 @@ registerRoute('put', '/users/:uid', (req, res) => {
         next.avatar_url = updates.avatar_url;
     }
 
-    // 壁纸字段：日记/话题各一条 URL + 透明度
+    // 壁纸字段：日记/话题各一条 URL + 透明度，以及共用的卡片不透明度
     if (Object.prototype.hasOwnProperty.call(updates, 'wallpaper_diary_url')) {
         if (typeof updates.wallpaper_diary_url !== 'string') {
             return fail(res, 400, 'wallpaper_diary_url 必须是字符串');
@@ -582,12 +586,21 @@ registerRoute('put', '/users/:uid', (req, res) => {
         next.wallpaper_topic_opacity = opacity;
     }
 
+    if (Object.prototype.hasOwnProperty.call(updates, 'card_opacity')) {
+        const opacity = updates.card_opacity;
+        if (typeof opacity !== 'number' || !Number.isFinite(opacity) || opacity < 0 || opacity > 1) {
+            return fail(res, 400, 'card_opacity 必须是 0~1 的数字');
+        }
+        next.card_opacity = opacity;
+    }
+
     users[index] = next;
     writeJsonArray(usersFile, users);
     return res.json({ ok: true });
 });
 
 registerRoute('get', '/moments', (req, res) => {
+    res.set('Cache-Control', 'no-store');
     const { date_str: dateStr, author_ids: authorIds } = req.query;
     if (!dateStr || !authorIds) {
         return fail(res, 400, 'date_str 和 author_ids 为必填参数');
@@ -891,6 +904,89 @@ registerRoute('get', '/moments/calendar/dates', (req, res) => {
 });
 
 
+
+// 日记详情放在 search/calendar 等固定路径之后，避免动态 id 抢先匹配。
+registerRoute('get', '/moments/:id', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    const moment = readJsonArray(momentsFile).find(m => String(m.id) === req.params.id);
+    if (!moment) return fail(res, 404, '日记不存在');
+    return ok(res, normalizeMomentRecord(moment));
+});
+
+// 同步读改写单条追加，不接受客户端提交旧的整份评论列表。
+registerRoute('post', '/moments/:id/comments', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    const moments = readJsonArray(momentsFile);
+    const index = moments.findIndex(m => String(m.id) === req.params.id);
+    if (index < 0) return fail(res, 404, '日记不存在');
+    const body = req.body || {};
+    if (typeof body.id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(body.id)) {
+        return fail(res, 400, '评论 id 无效');
+    }
+    if (typeof body.content !== 'string' || !body.content.trim()) {
+        return fail(res, 400, '评论不能为空');
+    }
+    if (!readJsonArray(usersFile).some(u => u.uid === body.author_id)) {
+        return fail(res, 400, '评论作者无效');
+    }
+    if (body.reply_to != null && typeof body.reply_to !== 'string') {
+        return fail(res, 400, '回复目标无效');
+    }
+    const moment = normalizeMomentRecord(moments[index]);
+    const content = body.content.trim();
+    const replyTo = body.reply_to || null;
+    const duplicate = moment.comments.find(c => String(c.id) === body.id);
+    if (duplicate) {
+        if (duplicate.author_id !== body.author_id || duplicate.content !== content || duplicate.reply_to !== replyTo) {
+            return fail(res, 409, '评论 id 已用于其他内容');
+        }
+        return ok(res, moment);
+    }
+    if (replyTo && !moment.comments.some(c => String(c.id) === replyTo)) {
+        return fail(res, 409, '回复的评论已不存在，请刷新日记后重试');
+    }
+    const comment = {
+        id: body.id, author_id: body.author_id, content,
+        reply_to: replyTo, created_at: nowIsoUtc8()
+    };
+    moment.comments.push(comment);
+    moments[index] = moment;
+    writeJsonArray(momentsFile, moments);
+    const recipient = getPartnerUid(comment.author_id);
+    const preview = content.length > 7 ? `${content.slice(0, 7)}...` : content;
+    pushNotification(recipient, {
+        id: comment.id, recipient_id: recipient, type: 'momentComment',
+        title: `对方在 ${moment.date_str} 的日记中评论：“${preview}”`,
+        content, date_str: moment.date_str, created_at: comment.created_at
+    });
+    return ok(res, moment);
+});
+
+registerRoute('delete', '/moments/:id/comments/:commentId', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    const moments = readJsonArray(momentsFile);
+    const index = moments.findIndex(m => String(m.id) === req.params.id);
+    if (index < 0) return fail(res, 404, '日记不存在');
+    const moment = normalizeMomentRecord(moments[index]);
+    const comment = moment.comments.find(c => String(c.id) === req.params.commentId);
+    if (!comment) return ok(res, moment);
+    if (comment.author_id !== req.body?.author_id) return fail(res, 403, '只能删除自己的评论');
+    const removed = new Set([String(comment.id)]);
+    let changed;
+    do {
+        changed = false;
+        for (const child of moment.comments) {
+            if (removed.has(String(child.reply_to)) && !removed.has(String(child.id))) {
+                removed.add(String(child.id));
+                changed = true;
+            }
+        }
+    } while (changed);
+    moment.comments = moment.comments.filter(c => !removed.has(String(c.id)));
+    moments[index] = moment;
+    writeJsonArray(momentsFile, moments);
+    return ok(res, moment);
+});
 
 // ─── 话题讨论 API ───
 const topicsFile = path.join(dataDir, 'topics.json');
