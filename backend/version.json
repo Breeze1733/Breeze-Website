@@ -1,5 +1,5 @@
 {
-  "version": "1.2.2",
-  "version_code": 39,
-  "release_notes": "优化了发布评论的逻辑，美化了心情得分图标与配色，卡片透明度支持调节"
+  "version": "1.2.3",
+  "version_code": 40,
+  "release_notes": "清理一些冗余代码，优化了已知问题"
 }

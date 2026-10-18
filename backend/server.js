@@ -3,25 +3,25 @@ const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
 const multer = require('multer');
+const { installAuth } = require('./auth');
 
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT || 3000);
+app.set('trust proxy', 'loopback');
 
 app.use(cors());
 app.use(express.json({ limit: '1gb' }));
 
 app.use((req, res, next) => {
-    if (req.url.startsWith('/api/')) {
+    if (/^\/api(?=\/|\?|$)/i.test(req.url)) {
         req.url = req.url.slice(4);
-    } else if (req.url === '/api') {
-        req.url = '/';
+        if (!req.url.startsWith('/')) req.url = '/' + req.url;
     }
     next();
 });
 
 function registerRoute(method, routePath, ...handlers) {
     app[method](routePath, ...handlers);
-    app[method](`/api${routePath}`, ...handlers);
 }
 
 function ok(res, data = {}) {
@@ -32,10 +32,19 @@ function fail(res, status, error) {
     return res.status(status).json({ ok: false, error });
 }
 
-const dataDir = path.join(__dirname, 'data');
+const dataDir = path.resolve(process.env.DATA_DIR || path.join(__dirname, 'data'));
 const usersFile = path.join(dataDir, 'users.json');
 const momentsFile = path.join(dataDir, 'moments.json');
 const notificationsFile = path.join(dataDir, 'notifications.json');
+installAuth({ app, registerRoute, authFile: process.env.AUTH_CONFIG_FILE || path.join(dataDir, 'auth.json') });
+
+function requireSessionAuthor(req, res, claimedId) {
+    if (claimedId !== undefined && claimedId !== req.auth.user_id) {
+        fail(res, 403, '不能以其他用户身份操作');
+        return false;
+    }
+    return true;
+}
 
 function ensureDataFiles() {
     if (!fs.existsSync(dataDir)) {
@@ -279,12 +288,12 @@ migrateMomentRecords();
 require('./analytics/dashboard-route').installDashboardStats({ registerRoute, momentsFile });
 
 // ─── 图片上传配置 ───
-const uploadsDir = path.join(__dirname, 'uploads');
+const uploadsDir = path.resolve(process.env.UPLOADS_DIR || path.join(__dirname, 'uploads'));
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-const chunksDir = path.join(__dirname, 'chunks_temp');
+const chunksDir = path.resolve(process.env.CHUNKS_DIR || path.join(__dirname, 'chunks_temp'));
 if (!fs.existsSync(chunksDir)) {
     fs.mkdirSync(chunksDir, { recursive: true });
 }
@@ -414,28 +423,44 @@ function cleanExpiredChunks() {
         }
     });
 }
-setInterval(cleanExpiredChunks, 6 * 60 * 60 * 1000);
+setInterval(cleanExpiredChunks, 6 * 60 * 60 * 1000).unref();
 cleanExpiredChunks();
 
 // 删除图片
 registerRoute('post', '/upload/delete', (req, res) => {
     const { url } = req.body || {};
     if (!url) return fail(res, 400, 'url 不能为空');
+    const imageName = value => {
+        try { return new URL(String(value), 'http://localhost').pathname.split('/').pop(); }
+        catch { return ''; }
+    };
+    const targetName = imageName(url);
+    if (!targetName || !/^[A-Za-z0-9_-]+\.(?:jpe?g|png|webp)$/i.test(targetName)) {
+        return fail(res, 400, '图片路径无效');
+    }
+    const usedByOtherProfile = readJsonArray(usersFile).some(user =>
+        user.uid !== req.auth.user_id &&
+        [user.avatar_url, user.wallpaper_diary_url, user.wallpaper_topic_url].some(value => imageName(value) === targetName));
+    const usedByOtherDiary = readJsonArray(momentsFile).some(moment =>
+        moment.author_id !== req.auth.user_id && normalizeImageUrls(moment).some(value => imageName(value) === targetName));
+    if (usedByOtherProfile || usedByOtherDiary) return fail(res, 403, '图片仍被另一用户引用');
     try {
-        const filename = String(url).split('/').pop();
-        if (filename) {
-            const filePath = path.join(uploadsDir, filename);
-            if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-        }
+        const filePath = path.join(uploadsDir, targetName);
+        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
     } catch (_) { /* 删失败不阻塞 */ }
     return ok(res);
 });
 
 // 静态文件服务 —— 让 /uploads/xxx.jpg 能直接访问
-app.use('/uploads', express.static(uploadsDir));
+app.use('/uploads', express.static(uploadsDir, {
+    setHeaders(res) {
+        res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
+        res.setHeader('Vary', 'Authorization');
+    }
+}));
 
 // --- 云剪切板 API ---
-const clipsDir = path.join(__dirname, 'clips');
+const clipsDir = path.resolve(process.env.CLIPS_DIR || path.join(__dirname, 'clips'));
 if (!fs.existsSync(clipsDir)) {
     fs.mkdirSync(clipsDir);
 }
@@ -498,7 +523,7 @@ registerRoute('delete', '/clips/:id', (req, res) => {
 });
 
 // 扫描 audio 文件夹返回音乐列表
-const audioDir = path.join(__dirname, '..', 'audio');
+const audioDir = path.resolve(process.env.AUDIO_DIR || path.join(__dirname, '..', 'audio'));
 registerRoute('get', '/audio-list', (req, res) => {
     fs.readdir(audioDir, (err, files) => {
         if (err) return res.status(500).json({ error: '读取音频目录失败' });
@@ -535,6 +560,7 @@ registerRoute('get', '/users/:uid', (req, res) => {
 });
 
 registerRoute('put', '/users/:uid', (req, res) => {
+    if (!requireSessionAuthor(req, res, req.params.uid)) return;
     const users = readJsonArray(usersFile);
     const index = users.findIndex(u => u.uid === req.params.uid);
     if (index === -1) {
@@ -624,13 +650,15 @@ registerRoute('get', '/moments', (req, res) => {
 registerRoute('post', '/moments', (req, res) => {
     const {
         date_str: dateStr,
-        author_id: authorId,
+        author_id: claimedAuthorId,
         image_urls: imageUrlsInput,
         self_image_url: selfImageUrl = '',
         partner_image_url: partnerImageUrl = '',
         feeling = '',
         mood: moodInput
     } = req.body || {};
+    if (!requireSessionAuthor(req, res, claimedAuthorId)) return;
+    const authorId = req.auth.user_id;
 
     if (imageUrlsInput !== undefined && !Array.isArray(imageUrlsInput)) {
         return fail(res, 400, 'image_urls 必须是数组');
@@ -707,6 +735,11 @@ registerRoute('put', '/moments/:id', (req, res) => {
 
     const original = moments[index];
     const updates = req.body || {};
+    if (original.author_id !== req.auth.user_id) return fail(res, 403, '只能修改自己的日记');
+    if (!requireSessionAuthor(req, res, updates.author_id)) return;
+    if (Object.prototype.hasOwnProperty.call(updates, 'comments')) {
+        return fail(res, 400, '请使用独立评论接口，不能覆盖整份评论列表');
+    }
     const next = { ...original };
 
     if (Object.prototype.hasOwnProperty.call(updates, 'image_urls')) {
@@ -736,24 +769,11 @@ registerRoute('put', '/moments/:id', (req, res) => {
         }
         next.mood = mood;
     }
-    if (Object.prototype.hasOwnProperty.call(updates, 'comments')) {
-        if (!Array.isArray(updates.comments)) {
-            return fail(res, 400, 'comments 必须是数组');
-        }
-        next.comments = normalizeComments(updates.comments, next.author_id);
-    }
     if (typeof updates.date_str === 'string') {
         if (!isValidDateStr(updates.date_str)) {
             return fail(res, 400, 'date_str 格式必须为 YYYY-MM-DD');
         }
         next.date_str = updates.date_str;
-    }
-    if (typeof updates.author_id === 'string') {
-        const users = readJsonArray(usersFile);
-        if (!users.some(u => u.uid === updates.author_id)) {
-            return fail(res, 400, 'author_id 无效');
-        }
-        next.author_id = updates.author_id;
     }
 
     const conflict = moments.some((m, i) => {
@@ -764,52 +784,21 @@ registerRoute('put', '/moments/:id', (req, res) => {
         return fail(res, 409, '更新后与现有动态冲突（同用户同日期）');
     }
 
-    // 仅评论变动不更新编辑时间
-    const isOnlyComments = Object.keys(updates).every(k => k === 'comments');
-    next.updated_at = isOnlyComments
-        ? (original.updated_at ? toIsoUtc8(original.updated_at) : nowIsoUtc8())
-        : nowIsoUtc8();
+    next.updated_at = nowIsoUtc8();
     next.created_at = original.created_at ? toIsoUtc8(original.created_at) : nowIsoUtc8();
     moments[index] = next;
     writeJsonArray(momentsFile, moments);
 
     const partnerUid = getPartnerUid(next.author_id);
-    // 1. 检查新增评论通知（带前10字摘要）
-    const origComments = original.comments || [];
-    const newComments = next.comments || [];
-    if (newComments.length > origComments.length) {
-        const origIds = new Set(origComments.map(c => String(c.id)));
-        const addedComments = newComments.filter(c => !origIds.has(String(c.id)));
-        for (const c of addedComments) {
-            const commentAuthor = String(c.author_id || '');
-            const targetRecipient = getPartnerUid(commentAuthor);
-            const contentStr = String(c.content || '').trim();
-            const preview = contentStr.length > 7 ? `${contentStr.slice(0, 7)}...` : contentStr;
-            const title = `对方在 ${next.date_str} 的日记中评论：“${preview}”`;
-            pushNotification(targetRecipient, {
-                id: c.id || makeMomentId(),
-                recipient_id: targetRecipient,
-                type: 'momentComment',
-                title,
-                content: contentStr,
-                date_str: next.date_str,
-                created_at: c.created_at || nowIsoUtc8()
-            });
-        }
-    }
-
-    // 2. 检查日记本体更新（非纯评论变动，带防刷覆盖）
-    if (!isOnlyComments) {
-        pushNotification(partnerUid, {
-            id: makeMomentId(),
-            recipient_id: partnerUid,
-            type: 'moment',
-            title: `对方更新了 ${next.date_str} 的日记`,
-            content: String(next.feeling || ''),
-            date_str: next.date_str,
-            created_at: nowIsoUtc8()
-        });
-    }
+    pushNotification(partnerUid, {
+        id: makeMomentId(),
+        recipient_id: partnerUid,
+        type: 'moment',
+        title: `对方更新了 ${next.date_str} 的日记`,
+        content: String(next.feeling || ''),
+        date_str: next.date_str,
+        created_at: nowIsoUtc8()
+    });
 
     return res.json({ ok: true });
 });
@@ -827,8 +816,8 @@ registerRoute('get', '/moments/search', (req, res) => {
 
     // 获取所有日记并按时间从新到旧排序（从下往上）
     const moments = readJsonArray(momentsFile);
-    const candidateMoments = uidList.length > 0 
-        ? moments.filter(m => uidList.includes(m.author_id)) 
+    const candidateMoments = uidList.length > 0
+        ? moments.filter(m => uidList.includes(m.author_id))
         : moments;
 
     candidateMoments.sort((a, b) => {
@@ -926,9 +915,8 @@ registerRoute('post', '/moments/:id/comments', (req, res) => {
     if (typeof body.content !== 'string' || !body.content.trim()) {
         return fail(res, 400, '评论不能为空');
     }
-    if (!readJsonArray(usersFile).some(u => u.uid === body.author_id)) {
-        return fail(res, 400, '评论作者无效');
-    }
+    if (!requireSessionAuthor(req, res, body.author_id)) return;
+    const authorId = req.auth.user_id;
     if (body.reply_to != null && typeof body.reply_to !== 'string') {
         return fail(res, 400, '回复目标无效');
     }
@@ -937,7 +925,7 @@ registerRoute('post', '/moments/:id/comments', (req, res) => {
     const replyTo = body.reply_to || null;
     const duplicate = moment.comments.find(c => String(c.id) === body.id);
     if (duplicate) {
-        if (duplicate.author_id !== body.author_id || duplicate.content !== content || duplicate.reply_to !== replyTo) {
+        if (duplicate.author_id !== authorId || duplicate.content !== content || duplicate.reply_to !== replyTo) {
             return fail(res, 409, '评论 id 已用于其他内容');
         }
         return ok(res, moment);
@@ -946,7 +934,7 @@ registerRoute('post', '/moments/:id/comments', (req, res) => {
         return fail(res, 409, '回复的评论已不存在，请刷新日记后重试');
     }
     const comment = {
-        id: body.id, author_id: body.author_id, content,
+        id: body.id, author_id: authorId, content,
         reply_to: replyTo, created_at: nowIsoUtc8()
     };
     moment.comments.push(comment);
@@ -970,7 +958,7 @@ registerRoute('delete', '/moments/:id/comments/:commentId', (req, res) => {
     const moment = normalizeMomentRecord(moments[index]);
     const comment = moment.comments.find(c => String(c.id) === req.params.commentId);
     if (!comment) return ok(res, moment);
-    if (comment.author_id !== req.body?.author_id) return fail(res, 403, '只能删除自己的评论');
+    if (comment.author_id !== req.auth.user_id) return fail(res, 403, '只能删除自己的评论');
     const removed = new Set([String(comment.id)]);
     let changed;
     do {
@@ -1008,14 +996,28 @@ function makePostId() {
 
 // 话题列表
 registerRoute('get', '/topics', (req, res) => {
+    const latestByTopic = new Map();
+    for (const post of readJsonArray(postsFile)) {
+        const candidate = post.updated_at || post.created_at;
+        if (!Number.isFinite(Date.parse(candidate))) continue;
+        const previous = latestByTopic.get(post.topic_id);
+        if (candidate && (!previous || new Date(candidate) > new Date(previous))) latestByTopic.set(post.topic_id, candidate);
+    }
     const topics = readJsonArray(topicsFile)
+        .map(topic => {
+            const postTime = latestByTopic.get(topic.id);
+            const topicTime = topic.updated_at || topic.created_at;
+            return { ...topic, latest_updated_at: postTime && new Date(postTime) > new Date(topicTime) ? postTime : topicTime };
+        })
         .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
     return ok(res, topics);
 });
 
 // 创建话题
 registerRoute('post', '/topics', (req, res) => {
-    const { title, author_id } = req.body || {};
+    const { title, author_id: claimedAuthorId } = req.body || {};
+    if (!requireSessionAuthor(req, res, claimedAuthorId)) return;
+    const author_id = req.auth.user_id;
     if (!title || !String(title).trim()) return fail(res, 400, '标题不能为空');
     if (!author_id) return fail(res, 400, 'author_id 不能为空');
 
@@ -1059,7 +1061,9 @@ registerRoute('get', '/topics/:id', (req, res) => {
 
 // 发帖
 registerRoute('post', '/topics/:id/posts', (req, res) => {
-    const { author_id, content } = req.body || {};
+    const { author_id: claimedAuthorId, content } = req.body || {};
+    if (!requireSessionAuthor(req, res, claimedAuthorId)) return;
+    const author_id = req.auth.user_id;
     if (!author_id) return fail(res, 400, 'author_id 不能为空');
     if (!content || !String(content).trim()) return fail(res, 400, '内容不能为空');
 
@@ -1100,6 +1104,7 @@ registerRoute('delete', '/topics/:id/posts/:postId', (req, res) => {
     const posts = readJsonArray(postsFile);
     const index = posts.findIndex(p => p.id === req.params.postId && p.topic_id === req.params.id);
     if (index === -1) return fail(res, 404, '帖子不存在');
+    if (posts[index].author_id !== req.auth.user_id) return fail(res, 403, '只能删除自己的帖子');
     posts.splice(index, 1);
     writeJsonArray(postsFile, posts);
     return ok(res);
@@ -1109,6 +1114,7 @@ registerRoute('delete', '/topics/:id/posts/:postId', (req, res) => {
 registerRoute('get', '/notifications', (req, res) => {
     const { user_id: userId } = req.query;
     if (!userId) return fail(res, 400, 'user_id 为必填参数');
+    if (!requireSessionAuthor(req, res, userId)) return;
     const notifications = readJsonArray(notificationsFile);
     const userNotifs = notifications
         .filter(n => n.recipient_id === String(userId))
@@ -1122,12 +1128,8 @@ registerRoute('get', '/notifications', (req, res) => {
     return ok(res, userNotifs);
 });
 
-const server = app.listen(PORT, () => {
-    console.log(`后端运行在 http://localhost:${PORT}`);
-});
-
 // --- 版本更新 API ---
-const versionFile = path.join(__dirname, 'version.json');
+const versionFile = path.resolve(process.env.VERSION_FILE || path.join(__dirname, 'version.json'));
 function readVersion() {
     try {
         return JSON.parse(fs.readFileSync(versionFile, 'utf8'));
@@ -1146,7 +1148,7 @@ registerRoute('get', '/version/latest', (req, res) => {
     });
 });
 
-const apkDir = path.join(__dirname, 'apk');
+const apkDir = path.resolve(process.env.APK_DIR || path.join(__dirname, 'apk'));
 if (!fs.existsSync(apkDir)) {
     fs.mkdirSync(apkDir, { recursive: true });
 }
@@ -1167,7 +1169,13 @@ app.use((err, req, res, _next) => {
     return res.status(500).send('Internal Server Error');
 });
 
-// --- 大文件传输核心设置 ---
-// 设置 1 小时超时，防止传输大文件时连接被 Node.js 主动掐断
-server.timeout = 3600000; 
-server.keepAliveTimeout = 3600000;
+// Importing the app allows isolated verification without opening a fixed port.
+module.exports = app;
+if (require.main === module) {
+    const server = app.listen(PORT, () => {
+        console.log(`后端运行在 http://localhost:${PORT}`);
+    });
+    // Preserve the existing large-transfer connection limits.
+    server.timeout = 3600000;
+    server.keepAliveTimeout = 3600000;
+}
