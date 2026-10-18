@@ -26,19 +26,19 @@ Keep the generated file outside source control and deny direct web access to the
 | Environment variable | Default |
 | --- | --- |
 | `PORT` | `3000` |
-| `DATA_DIR` | `backend/data` |
+| `DATA_DIR` | `diptych-backend/data` |
 | `AUTH_CONFIG_FILE` | `${DATA_DIR}/auth.json` |
-| `UPLOADS_DIR` | `backend/uploads` |
-| `CHUNKS_DIR` | `backend/chunks_temp` |
+| `UPLOADS_DIR` | `diptych-backend/uploads` |
+| `CHUNKS_DIR` | `diptych-backend/chunks_temp` |
 | `AUDIO_DIR` | `../audio` relative to backend |
-| `APK_DIR` | `backend/apk` |
-| `VERSION_FILE` | `backend/version.json` |
+| `APK_DIR` | `diptych-backend/apk` |
+| `VERSION_FILE` | `diptych-backend/version.json` |
 
 For local verification, point all directories at a temporary directory and use fake keys. `require('./server')` exports the Express application without listening; callers can use `app.listen(0)` and close the returned server afterward. The chunk cleanup timer does not keep an imported process alive.
 
 ## Deployment and client upgrade
 
-Deploy `server.js`, `auth.js`, `json-store.js`, `upload-routes.js`, `package.json`, `package-lock.json`, and both `analytics/dashboard-route.js` and `analytics/moments-analytics.js`. Preserve the existing server's data, uploads, APKs, version configuration, and generated authentication configuration. Run `npm ci --ignore-scripts` if installing into a new directory, then restart the existing `moments-backend` PM2 process. Source changes and authentication configuration must be installed before restart.
+Deploy `server.js`, `auth.js`, `json-store.js`, `upload-routes.js`, `package.json`, `package-lock.json`, and both `analytics/dashboard-route.js` and `analytics/moments-analytics.js`. Preserve the existing server's data, uploads, APKs, version configuration, and generated authentication configuration. Run `npm ci --ignore-scripts` if installing into a new directory, then restart the existing `diptych-backend` PM2 process. Source changes and authentication configuration must be installed before restart.
 
 The Flutter client must be upgraded with the backend: `POST /api/auth/login` accepts `{ "key": "..." }` and returns `user_id`, a signed `token`, and ISO `expires_at`. Send `Authorization: Bearer <token>` on users, moments, topics, notifications, uploads, and private media requests. Sessions last 30 days. Old clients relying solely on local key comparison cannot access these routes after deployment. `/version`, `/dashboard/stats`, and `/audio-list` retain their existing public behavior.
 

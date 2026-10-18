@@ -1,25 +1,4 @@
-# Node.js 依赖（同时匹配根目录及各后端）
-node_modules/
-
-# 服务端持久数据与上传文件
-/backend/data/
-/backend/uploads/
-/backend/clips/
-/transfer-backend/data/
-/transfer-backend/transfer-uploads/
+/node_modules/
 /audio/
-
-# 上传分片与安装包产物
-/backend/chunks_temp/
-/backend/apk/
-
-# MediaPipe 手势模型与 WASM（保留服务器文件，不纳入版本库）
-/models/
-/js/tasks-vision/*.task
+/js/tasks-vision/hand_landmarker.task
 /js/tasks-vision/wasm/
-
-# 本地环境与日志
-.env
-.env.*
-!.env.example
-*.log
