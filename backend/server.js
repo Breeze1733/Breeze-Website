@@ -2,7 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const fs = require('fs');
 const path = require('path');
-const multer = require('multer');
+const { DataStoreError, readJsonArray, writeJsonArray } = require('./json-store');
+const { installUploadRoutes } = require('./upload-routes');
 const { installAuth } = require('./auth');
 
 const app = express();
@@ -51,28 +52,14 @@ function ensureDataFiles() {
         fs.mkdirSync(dataDir, { recursive: true });
     }
     if (!fs.existsSync(usersFile)) {
-        fs.writeFileSync(usersFile, '[]', 'utf8');
+        writeJsonArray(usersFile, []);
     }
     if (!fs.existsSync(momentsFile)) {
-        fs.writeFileSync(momentsFile, '[]', 'utf8');
+        writeJsonArray(momentsFile, []);
     }
     if (!fs.existsSync(notificationsFile)) {
-        fs.writeFileSync(notificationsFile, '[]', 'utf8');
+        writeJsonArray(notificationsFile, []);
     }
-}
-
-function readJsonArray(filePath) {
-    try {
-        const text = fs.readFileSync(filePath, 'utf8');
-        const data = JSON.parse(text);
-        return Array.isArray(data) ? data : [];
-    } catch {
-        return [];
-    }
-}
-
-function writeJsonArray(filePath, data) {
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf8');
 }
 
 function ensurePresetUsers() {
@@ -164,27 +151,35 @@ function getPartnerUid(authorId) {
 }
 
 function pushNotification(recipientId, notification) {
-    if (!recipientId) return;
-    const notifications = readJsonArray(notificationsFile);
-    // 防刷屏覆盖机制：如果是日记动态(moment)，检查队列中是否已有同一天给该接收者的未消费通知
-    if (notification.type === 'moment') {
-        const existingIdx = notifications.findIndex(n =>
-            n.recipient_id === recipientId &&
-            n.type === 'moment' &&
-            n.date_str === notification.date_str
-        );
-        if (existingIdx !== -1) {
-            notifications[existingIdx] = {
-                ...notifications[existingIdx],
-                ...notification,
-                id: notifications[existingIdx].id
-            };
-            writeJsonArray(notificationsFile, notifications);
-            return;
+    if (!recipientId) return false;
+    try {
+        const notifications = readJsonArray(notificationsFile);
+        // 防刷屏覆盖机制：合并同一天给该接收者的日记通知。
+        if (notification.type === 'moment') {
+            const existingIdx = notifications.findIndex(n =>
+                n.recipient_id === recipientId &&
+                n.type === 'moment' &&
+                n.date_str === notification.date_str
+            );
+            if (existingIdx !== -1) {
+                notifications[existingIdx] = {
+                    ...notifications[existingIdx],
+                    ...notification,
+                    id: notifications[existingIdx].id
+                };
+                writeJsonArray(notificationsFile, notifications);
+                return true;
+            }
         }
+        notifications.push(notification);
+        writeJsonArray(notificationsFile, notifications);
+        return true;
+    } catch (err) {
+        // The primary record has already committed. A separate notification failure
+        // must not make the client retry a successful publish or disclose its content.
+        console.error('写入动态通知失败，主记录已保存:', err instanceof DataStoreError ? err.message : '通知处理异常');
+        return false;
     }
-    notifications.push(notification);
-    writeJsonArray(notificationsFile, notifications);
 }
 
 function migrateMomentRecords() {
@@ -294,137 +289,7 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 const chunksDir = path.resolve(process.env.CHUNKS_DIR || path.join(__dirname, 'chunks_temp'));
-if (!fs.existsSync(chunksDir)) {
-    fs.mkdirSync(chunksDir, { recursive: true });
-}
-
-const chunkUpload = multer({
-    storage: multer.diskStorage({
-        destination: (req, _file, cb) => {
-            const uploadId = (req.body && req.body.upload_id)
-                ? String(req.body.upload_id).replace(/[^a-zA-Z0-9_-]/g, '')
-                : ((req.query && req.query.upload_id) ? String(req.query.upload_id).replace(/[^a-zA-Z0-9_-]/g, '') : 'default');
-            const taskDir = path.join(chunksDir, uploadId);
-            if (!fs.existsSync(taskDir)) {
-                fs.mkdirSync(taskDir, { recursive: true });
-            }
-            cb(null, taskDir);
-        },
-        filename: (req, _file, cb) => {
-            const chunkIndex = (req.body && req.body.chunk_index !== undefined)
-                ? String(req.body.chunk_index).replace(/[^0-9]/g, '')
-                : ((req.query && req.query.chunk_index !== undefined) ? String(req.query.chunk_index).replace(/[^0-9]/g, '') : '0');
-            cb(null, chunkIndex);
-        }
-    }),
-    limits: {
-        fileSize: 15 * 1024 * 1024
-    }
-});
-
-// 分片上传接口（完全采用分片切片上传，单片 1MB 彻底规避网关超时）
-registerRoute('post', '/upload/chunk', chunkUpload.single('file'), (req, res) => {
-    if (!req.file) {
-        return fail(res, 400, '分片数据不能为空');
-    }
-    const { upload_id, chunk_index, total_chunks } = req.body || {};
-    return ok(res, {
-        upload_id,
-        chunk_index: Number(chunk_index),
-        total_chunks: Number(total_chunks)
-    });
-});
-
-// 合并分片接口
-registerRoute('post', '/upload/merge', async (req, res) => {
-    const { upload_id, filename, total_chunks } = req.body || {};
-    if (!upload_id || total_chunks === undefined) {
-        return fail(res, 400, '参数不完整 (upload_id 与 total_chunks 必填)');
-    }
-    const safeUploadId = String(upload_id).replace(/[^a-zA-Z0-9_-]/g, '');
-    const taskDir = path.join(chunksDir, safeUploadId);
-    if (!fs.existsSync(taskDir)) {
-        return fail(res, 404, '分片任务不存在或已过期');
-    }
-
-    const count = Number(total_chunks);
-    if (isNaN(count) || count <= 0) {
-        return fail(res, 400, 'total_chunks 格式无效');
-    }
-
-    // 校验所有切片是否全部到齐
-    for (let i = 0; i < count; i++) {
-        const chunkPath = path.join(taskDir, String(i));
-        if (!fs.existsSync(chunkPath)) {
-            return fail(res, 400, '分片不完整，缺少第 ' + i + ' 片');
-        }
-    }
-
-    // 生成正式图片文件名
-    const rawExt = path.extname(filename || '').toLowerCase();
-    const allowed = ['.jpg', '.jpeg', '.png', '.webp'];
-    const ext = allowed.includes(rawExt) ? rawExt : '.jpg';
-    const finalName = Date.now().toString(36) + Math.random().toString(36).slice(2, 8) + ext;
-    const finalPath = path.join(uploadsDir, finalName);
-
-    try {
-        const writeStream = fs.createWriteStream(finalPath);
-        for (let i = 0; i < count; i++) {
-            const chunkPath = path.join(taskDir, String(i));
-            const buf = await fs.promises.readFile(chunkPath);
-            writeStream.write(buf);
-        }
-        await new Promise((resolve, reject) => {
-            writeStream.end(resolve);
-            writeStream.on('error', reject);
-        });
-
-        // 异步安全清理该任务的临时分片目录
-        fs.rm(taskDir, { recursive: true, force: true }, () => {});
-
-        const url = `https://breeze.qzz.io/api/uploads/${finalName}`;
-        return ok(res, { url });
-    } catch (err) {
-        console.error('合并切片失败:', err);
-        return fail(res, 500, `文件合并失败: ${err.message}`);
-    }
-});
-
-// 取消分片上传并立即清理临时分片
-registerRoute('post', '/upload/abort', (req, res) => {
-    const { upload_id } = req.body || {};
-    if (!upload_id) {
-        return fail(res, 400, 'upload_id 不能为空');
-    }
-    const safeUploadId = String(upload_id).replace(/[^a-zA-Z0-9_-]/g, '');
-    const taskDir = path.join(chunksDir, safeUploadId);
-    if (fs.existsSync(taskDir)) {
-        fs.rm(taskDir, { recursive: true, force: true }, () => {});
-    }
-    return ok(res, { message: '分片已清理' });
-});
-
-// 定时清理超过 12 小时未合并的孤儿分片目录（每 6 小时检查一次）
-function cleanExpiredChunks() {
-    if (!fs.existsSync(chunksDir)) return;
-    const now = Date.now();
-    const expireMs = 12 * 60 * 60 * 1000;
-    fs.readdir(chunksDir, { withFileTypes: true }, (err, entries) => {
-        if (err || !entries) return;
-        for (const entry of entries) {
-            if (entry.isDirectory()) {
-                const dirPath = path.join(chunksDir, entry.name);
-                fs.stat(dirPath, (statErr, stats) => {
-                    if (!statErr && now - stats.mtimeMs > expireMs) {
-                        fs.rm(dirPath, { recursive: true, force: true }, () => {});
-                    }
-                });
-            }
-        }
-    });
-}
-setInterval(cleanExpiredChunks, 6 * 60 * 60 * 1000).unref();
-cleanExpiredChunks();
+installUploadRoutes({ registerRoute, uploadsDir, chunksDir, ok, fail });
 
 // 删除图片
 registerRoute('post', '/upload/delete', (req, res) => {
@@ -438,12 +303,11 @@ registerRoute('post', '/upload/delete', (req, res) => {
     if (!targetName || !/^[A-Za-z0-9_-]+\.(?:jpe?g|png|webp)$/i.test(targetName)) {
         return fail(res, 400, '图片路径无效');
     }
-    const usedByOtherProfile = readJsonArray(usersFile).some(user =>
-        user.uid !== req.auth.user_id &&
+    const usedByProfile = readJsonArray(usersFile).some(user =>
         [user.avatar_url, user.wallpaper_diary_url, user.wallpaper_topic_url].some(value => imageName(value) === targetName));
-    const usedByOtherDiary = readJsonArray(momentsFile).some(moment =>
-        moment.author_id !== req.auth.user_id && normalizeImageUrls(moment).some(value => imageName(value) === targetName));
-    if (usedByOtherProfile || usedByOtherDiary) return fail(res, 403, '图片仍被另一用户引用');
+    const usedByDiary = readJsonArray(momentsFile).some(moment =>
+        normalizeImageUrls(moment).some(value => imageName(value) === targetName));
+    if (usedByProfile || usedByDiary) return fail(res, 409, '图片仍被日记或用户资料引用');
     try {
         const filePath = path.join(uploadsDir, targetName);
         if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
@@ -458,69 +322,6 @@ app.use('/uploads', express.static(uploadsDir, {
         res.setHeader('Vary', 'Authorization');
     }
 }));
-
-// --- 云剪切板 API ---
-const clipsDir = path.resolve(process.env.CLIPS_DIR || path.join(__dirname, 'clips'));
-if (!fs.existsSync(clipsDir)) {
-    fs.mkdirSync(clipsDir);
-}
-
-// 获取所有剪切板内容
-registerRoute('get', '/clips', (req, res) => {
-    fs.readdir(clipsDir, (err, files) => {
-        if (err) return res.status(500).send('读取剪切板失败');
-        const clips = files
-            .filter(f => f.endsWith('.json'))
-            .map(f => {
-                try {
-                    const data = JSON.parse(fs.readFileSync(path.join(clipsDir, f), 'utf8'));
-                    return { id: f.replace('.json', ''), ...data };
-                } catch { return null; }
-            })
-            .filter(Boolean)
-            .sort((a, b) => b.createdAt - a.createdAt);
-        res.json(clips);
-    });
-});
-
-// 保存新的剪切板内容
-registerRoute('post', '/clips', (req, res) => {
-    const { content } = req.body;
-    if (!content || !content.trim()) return res.status(400).send('内容不能为空');
-    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-    const clip = {
-        content: content.trim(),
-        preview: content.trim().slice(0, 100),
-        createdAt: Date.now()
-    };
-    fs.writeFileSync(path.join(clipsDir, `${id}.json`), JSON.stringify(clip));
-    res.send({ message: '保存成功', id });
-});
-
-// 更新剪切板内容
-registerRoute('put', '/clips/:id', (req, res) => {
-    const { content } = req.body;
-    if (!content || !content.trim()) return res.status(400).send('内容不能为空');
-    const filePath = path.join(clipsDir, `${req.params.id}.json`);
-    if (!fs.existsSync(filePath)) return res.status(404).send('内容不存在');
-    const clip = {
-        content: content.trim(),
-        preview: content.trim().slice(0, 100),
-        createdAt: Date.now()
-    };
-    fs.writeFileSync(filePath, JSON.stringify(clip));
-    res.send({ message: '更新成功' });
-});
-
-// 删除剪切板内容
-registerRoute('delete', '/clips/:id', (req, res) => {
-    const filePath = path.join(clipsDir, `${req.params.id}.json`);
-    if (!fs.existsSync(filePath)) return res.status(404).send('内容不存在');
-    fs.unlink(filePath, (err) => {
-        if (err) return res.status(500).send('删除失败');
-        res.send({ message: '已删除' });
-    });
-});
 
 // 扫描 audio 文件夹返回音乐列表
 const audioDir = path.resolve(process.env.AUDIO_DIR || path.join(__dirname, '..', 'audio'));
@@ -981,8 +782,8 @@ const topicsFile = path.join(dataDir, 'topics.json');
 const postsFile = path.join(dataDir, 'posts.json');
 
 function ensureTopicFiles() {
-    if (!fs.existsSync(topicsFile)) fs.writeFileSync(topicsFile, '[]', 'utf8');
-    if (!fs.existsSync(postsFile)) fs.writeFileSync(postsFile, '[]', 'utf8');
+    if (!fs.existsSync(topicsFile)) writeJsonArray(topicsFile, []);
+    if (!fs.existsSync(postsFile)) writeJsonArray(postsFile, []);
 }
 ensureTopicFiles();
 
@@ -1084,7 +885,6 @@ registerRoute('post', '/topics/:id/posts', (req, res) => {
 
     const partnerUid = getPartnerUid(author_id);
     const contentStr = String(content).trim();
-    const preview = contentStr.length > 10 ? `${contentStr.slice(0, 10)}...` : contentStr;
     pushNotification(partnerUid, {
         id: post.id,
         recipient_id: partnerUid,
@@ -1163,6 +963,7 @@ registerRoute('get', '/version/download', (req, res) => {
 // 全局错误处理 —— 防止任何未捕获异常返回 HTML
 app.use((err, req, res, _next) => {
     console.error('未捕获错误:', err);
+    if (err instanceof DataStoreError) return fail(res, 503, err.message);
     if (req.url.startsWith('/api/') || req.url.startsWith('/upload') || req.url.startsWith('/moments') || req.url.startsWith('/users')) {
         return res.status(500).json({ ok: false, error: '服务器内部错误: ' + (err.message || '未知错误') });
     }
