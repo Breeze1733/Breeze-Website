@@ -5,6 +5,7 @@ const path = require('path');
 const { DataStoreError, readJsonArray, writeJsonArray } = require('./json-store');
 const { installUploadRoutes } = require('./upload-routes');
 const { installAuth } = require('./auth');
+const { createImagePreviewStore, safeImageName, nameFromUrl } = require('./image-previews');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -289,10 +290,16 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 const chunksDir = path.resolve(process.env.CHUNKS_DIR || path.join(__dirname, 'chunks_temp'));
-installUploadRoutes({ registerRoute, uploadsDir, chunksDir, ok, fail });
+// Keep existing originals and URLs in uploads/; derived files live outside it.
+const previewsDir = path.resolve(process.env.PREVIEWS_DIR || `${uploadsDir}_previews`);
+const imagePreviews = createImagePreviewStore({ originalsDir: uploadsDir, previewsDir });
+installUploadRoutes({ registerRoute, uploadsDir, chunksDir, ok, fail, onMerged(url) {
+    const name = nameFromUrl(url);
+    if (name) imagePreviews.warm(name);
+} });
 
 // 删除图片
-registerRoute('post', '/upload/delete', (req, res) => {
+registerRoute('post', '/upload/delete', async (req, res, next) => {
     const { url } = req.body || {};
     if (!url) return fail(res, 400, 'url 不能为空');
     const imageName = value => {
@@ -300,7 +307,7 @@ registerRoute('post', '/upload/delete', (req, res) => {
         catch { return ''; }
     };
     const targetName = imageName(url);
-    if (!targetName || !/^[A-Za-z0-9_-]+\.(?:jpe?g|png|webp)$/i.test(targetName)) {
+    if (!safeImageName(targetName)) {
         return fail(res, 400, '图片路径无效');
     }
     const usedByProfile = readJsonArray(usersFile).some(user =>
@@ -309,19 +316,13 @@ registerRoute('post', '/upload/delete', (req, res) => {
         normalizeImageUrls(moment).some(value => imageName(value) === targetName));
     if (usedByProfile || usedByDiary) return fail(res, 409, '图片仍被日记或用户资料引用');
     try {
-        const filePath = path.join(uploadsDir, targetName);
-        if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-    } catch (_) { /* 删失败不阻塞 */ }
+        await imagePreviews.remove(targetName);
+    } catch (error) { return next(error); }
     return ok(res);
 });
 
 // 静态文件服务 —— 让 /uploads/xxx.jpg 能直接访问
-app.use('/uploads', express.static(uploadsDir, {
-    setHeaders(res) {
-        res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
-        res.setHeader('Vary', 'Authorization');
-    }
-}));
+app.use('/uploads', imagePreviews.middleware);
 
 // 扫描 audio 文件夹返回音乐列表
 const audioDir = path.resolve(process.env.AUDIO_DIR || path.join(__dirname, '..', 'audio'));

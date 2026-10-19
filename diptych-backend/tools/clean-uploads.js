@@ -1,484 +1,293 @@
 #!/usr/bin/env node
-/**
-clean-uploads.js
-检测、统计并清理 backend/uploads 目录下的图片与未引用（死图片）文件。
-用法：
-cd backend
-node tools/clean-uploads.js                     # 检测预览 + 格式统计（安全模式，不删除任何文件）
-node tools/clean-uploads.js --stat              # 纯统计视图（替代原 stat-images.js）
-node tools/clean-uploads.js --clean             # 执行清理（直接删除未引用的死图片）
-node tools/clean-uploads.js --clean --backup    # 备份到指定目录后清理（推荐）
-node tools/clean-uploads.js --verbose           # 打印全部死图片详细清单
-node tools/clean-uploads.js --all               # 忽略保护时间，检测/清理所有死图片
-node tools/clean-uploads.js --help              # 查看帮助
- **/
+'use strict';
 
-const fs = require('fs');
-const path = require('path');
-// 脚本位于 backend/tools，默认业务路径始终从 backend 根目录计算。
+// 默认只检测；--clean 才清理未引用原图及其预览，--backup 可保留可恢复副本。
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
 const backendDir = path.resolve(__dirname, '..');
+const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.heic', '.heif', '.avif', '.tif', '.tiff', '.svg']);
+const PREVIEW_NAME = /^([a-f0-9]{64})-v[1-9]\d*\.(webp|json)$/;
+const imageId = name => crypto.createHash('sha256').update(name).digest('hex');
+const bytes = files => files.reduce((sum, file) => sum + file.size, 0);
+const signature = stat => `${stat.dev}:${stat.ino}:${stat.size}:${stat.mtimeMs}:${stat.ctimeMs}`;
 
-// 支持的图片扩展名
-const IMAGE_EXTS = new Set([
-    '.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.heic', '.avif', '.svg'
-]);
+function parseDuration(value) {
+    const match = /^(\d+(?:\.\d+)?)\s*(ms|s|m|h|d)?$/i.exec(String(value).trim());
+    if (!match) throw new Error('保护时间无效，例如 --min-age 1h；取消保护请明确指定 --all');
+    const duration = Number(match[1]) * ({ ms: 1, s: 1000, m: 60000, h: 3600000, d: 86400000 }[(match[2] || 'h').toLowerCase()]);
+    if (!Number.isFinite(duration)) throw new Error('保护时间过大');
+    return duration;
+}
 
-// 解析命令行参数
-const args = process.argv.slice(2);
-const options = {
-    clean: false,
-    backup: false,
-    backupDir: '',
-    all: false,
-    statOnly: false,
-    minAgeMs: 60 * 60 * 1000, // 默认保护 1 小时内的新上传文件，避免并发上传中途被清理
-    verbose: false,
-    json: false,
-    uploadsDir: path.join(backendDir, 'uploads'),
-    dataDir: path.join(backendDir, 'data')
-};
-
-for (let i = 0; i < args.length; i++) {
-    const arg = args[i];
-    if (arg === '--clean' || arg === '-c' || arg === '--delete' || arg === '-d') {
-        options.clean = true;
-    } else if (arg === '--stat' || arg === '-s') {
-        options.statOnly = true;
-    } else if (arg === '--backup' || arg === '-b') {
-        options.backup = true;
-    } else if (arg.startsWith('--backup-dir=')) {
-        options.backup = true;
-        options.backupDir = arg.split('=')[1];
-    } else if (arg === '--backup-dir') {
-        options.backup = true;
-        options.backupDir = args[++i];
-    } else if (arg === '--all') {
-        options.all = true;
-        options.minAgeMs = 0;
-    } else if (arg.startsWith('--min-age=')) {
-        options.minAgeMs = parseDuration(arg.split('=')[1]);
-    } else if (arg === '--min-age') {
-        options.minAgeMs = parseDuration(args[++i]);
-    } else if (arg === '--verbose' || arg === '-v') {
-        options.verbose = true;
-    } else if (arg === '--json') {
-        options.json = true;
-    } else if (arg.startsWith('--uploads-dir=')) {
-        options.uploadsDir = path.resolve(arg.split('=')[1]);
-    } else if (arg.startsWith('--data-dir=')) {
-        options.dataDir = path.resolve(arg.split('=')[1]);
-    } else if (arg === '--help' || arg === '-h') {
-        printHelp();
-        process.exit(0);
+function parseArgs(args) {
+    const options = { minAgeMs: 3600000, uploadsDir: process.env.UPLOADS_DIR || path.join(backendDir, 'uploads'),
+        dataDir: process.env.DATA_DIR || path.join(backendDir, 'data'), previewsDir: process.env.PREVIEWS_DIR };
+    for (let i = 0; i < args.length; i++) {
+        const equal = args[i].indexOf('=');
+        const name = equal < 0 ? args[i] : args[i].slice(0, equal);
+        const flag = { '--clean': 'clean', '-c': 'clean', '--delete': 'clean', '-d': 'clean', '--backup': 'backup', '-b': 'backup',
+            '--all': 'all', '--stat': 'statOnly', '-s': 'statOnly', '--verbose': 'verbose', '-v': 'verbose', '--json': 'json', '--help': 'help', '-h': 'help' }[name];
+        if (flag) {
+            if (equal >= 0) throw new Error(`${name} 不接受参数值`);
+            options[flag] = true;
+            continue;
+        }
+        const key = { '--uploads-dir': 'uploadsDir', '--previews-dir': 'previewsDir', '--data-dir': 'dataDir', '--backup-dir': 'backupDir', '--min-age': 'minAgeMs' }[name];
+        if (!key) throw new Error(`未知选项：${name}`);
+        const value = equal < 0 ? args[++i] : args[i].slice(equal + 1);
+        if (!value || value.startsWith('-')) throw new Error(`${name} 缺少参数值`);
+        options[key] = key === 'minAgeMs' ? parseDuration(value) : path.resolve(value);
+        if (key === 'backupDir') options.backup = true;
     }
-}
-
-// 格式化时间与文件体积工具函数
-function parseDuration(str) {
-    if (!str) return 0;
-    const match = String(str).trim().match(/^(\d+(?:\.\d+)?)\s*(ms|s|m|h|d)?$/i);
-    if (!match) return 0;
-    const num = parseFloat(match[1]);
-    const unit = (match[2] || 'h').toLowerCase();
-    switch (unit) {
-        case 'ms': return num;
-        case 's': return num * 1000;
-        case 'm': return num * 60 * 1000;
-        case 'h': return num * 60 * 60 * 1000;
-        case 'd': return num * 24 * 60 * 60 * 1000;
-        default: return num * 60 * 60 * 1000;
-    }
-}
-
-function formatSize(bytes) {
-    if (bytes >= 1024 ** 3) return (bytes / 1024 ** 3).toFixed(2) + ' GB';
-    if (bytes >= 1024 ** 2) return (bytes / 1024 ** 2).toFixed(2) + ' MB';
-    if (bytes >= 1024) return (bytes / 1024).toFixed(2) + ' KB';
-    return bytes + ' B';
-}
-
-function formatDate(date) {
-    const pad = (n) => String(n).padStart(2, '0');
-    const y = date.getFullYear();
-    const m = pad(date.getMonth() + 1);
-    const d = pad(date.getDate());
-    const h = pad(date.getHours());
-    const min = pad(date.getMinutes());
-    const s = pad(date.getSeconds());
-    return `${y}-${m}-${d} ${h}:${min}:${s}`;
+    options.uploadsDir = path.resolve(options.uploadsDir);
+    options.dataDir = path.resolve(options.dataDir);
+    options.previewsDir = path.resolve(options.previewsDir || `${options.uploadsDir}_previews`);
+    if (options.all) options.minAgeMs = 0;
+    if (options.statOnly && options.clean) throw new Error('--stat 与 --clean 不能同时使用');
+    return options;
 }
 
 function printHelp() {
-    console.log(`
-clean-uploads.js - 统计、检测并清理 backend/uploads 下的图片文件
-
-用法：
-  node tools/clean-uploads.js [选项]
-
-选项：
-  --stat, -s            纯统计视图（统计图片总数、格式分布、时间范围、体积，不检测引用）
-  --clean, -c           执行清理（删除未引用的死图片，默认为预览模式）
-  --backup, -b          清理时将图片移动到备份目录而非直接删除
-  --backup-dir <path>   指定备份目录（默认: backend/uploads_backup_<时间戳>）
-  --all                 忽略创建时间保护，检测/清理所有死图片（默认保护 1 小时内新文件）
-  --min-age <duration>  自定义保护时间，如: 30m, 2h, 1d, 0（默认: 1h）
-  --verbose, -v         显示全部未引用图片的完整列表
-  --json                输出 JSON 格式的统计或清理结果
-  --uploads-dir <path>  自定义 uploads 目录路径
-  --data-dir <path>     自定义 data 目录路径
-  --help, -h            显示此帮助信息
-
-示例：
-  node tools/clean-uploads.js                     # 检测预览 + 格式分布
-  node tools/clean-uploads.js --stat              # 纯统计输出（兼容 stat-images.js）
-  node tools/clean-uploads.js --clean             # 执行清理
-  node tools/clean-uploads.js --clean --backup    # 安全清理（先备份）
-  node tools/clean-uploads.js --clean --all       # 清理所有死图片（不设时间保护）
-`);
+    console.log(`原图与预览图统计、引用检测及清理（默认只检测，不删除）
+用法：node tools/clean-uploads.js [选项]
+  --stat, -s             只统计原图与预览，不读取引用数据
+  --clean, -c            清理未引用原图、对应预览和无主预览
+  --backup, -b           清理前备份，原图和预览分别保存
+  --backup-dir <path>    指定备份目录，默认 uploads_backup_<时间戳>
+  --min-age <duration>   新文件保护时间，默认 1h，例如 30m、2h、1d
+  --all                 取消新文件保护
+  --uploads-dir <path>   原图目录（也支持 UPLOADS_DIR）
+  --previews-dir <path>  预览目录（也支持 PREVIEWS_DIR，默认原图目录加 _previews）
+  --data-dir <path>      引用数据目录（也支持 DATA_DIR）
+  --verbose, -v         列出全部待清理文件
+  --json                输出 JSON
+  --help, -h            显示帮助`);
 }
 
-// 主流程
-function run() {
-    const { uploadsDir, dataDir } = options;
-
-    if (!fs.existsSync(uploadsDir)) {
-        console.error(`错误：Uploads 目录不存在: ${uploadsDir}`);
-        process.exit(1);
+// 解析已有父目录的真实位置，避免通过目录链接把备份写进原图或业务数据中。
+function realLocation(directory) {
+    let current = path.resolve(directory);
+    const missing = [];
+    while (!fs.existsSync(current)) {
+        missing.unshift(path.basename(current));
+        const parent = path.dirname(current);
+        if (parent === current) throw new Error(`目录无法解析：${directory}`);
+        current = parent;
     }
-    if (!options.statOnly && !fs.existsSync(dataDir)) {
-        console.error(`错误：Data 目录不存在: ${dataDir}`);
-        process.exit(1);
-    }
+    return path.join(fs.realpathSync(current), ...missing);
+}
 
-    // 1. 扫描 backend/uploads 目录所有文件
-    const now = Date.now();
-    const uploadEntries = fs.readdirSync(uploadsDir, { withFileTypes: true });
+function contains(parent, child) {
+    const relative = path.relative(parent, child);
+    return !relative || (!path.isAbsolute(relative) && relative !== '..' && !relative.startsWith(`..${path.sep}`));
+}
 
-    const totalFiles = [];
-    const imageFiles = [];
-    const nonImageFiles = [];
+function requireSeparate(a, b) {
+    if (contains(a, b) || contains(b, a)) throw new Error(`目录不能重叠：${a} 与 ${b}`);
+}
 
-    let totalUploadsBytes = 0;
-    let totalImagesBytes = 0;
-    let nonImageBytes = 0;
-
-    const extMap = {}; // 格式分布统计: ext -> { count, size }
-
-    for (const entry of uploadEntries) {
+function scan(directory, optional = false) {
+    if (optional && !fs.existsSync(directory)) return [];
+    const files = [];
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
         if (!entry.isFile()) continue;
-
-        const name = entry.name;
-        const fullPath = path.join(uploadsDir, name);
+        const fullPath = path.join(directory, entry.name);
         let stat;
-        try {
-            stat = fs.statSync(fullPath);
-        } catch (e) {
-            continue;
-        }
-
-        totalUploadsBytes += stat.size;
-        const ext = path.extname(name).toLowerCase() || '(无扩展名)';
-        const fileInfo = {
-            name,
-            ext,
-            size: stat.size,
-            mtime: stat.mtime,
-            fullPath
-        };
-        totalFiles.push(fileInfo);
-
-        if (IMAGE_EXTS.has(ext)) {
-            imageFiles.push(fileInfo);
-            totalImagesBytes += stat.size;
-
-            if (!extMap[ext]) extMap[ext] = { count: 0, size: 0 };
-            extMap[ext].count++;
-            extMap[ext].size += stat.size;
-        } else {
-            nonImageFiles.push(fileInfo);
-            nonImageBytes += stat.size;
-        }
+        try { stat = fs.lstatSync(fullPath); } catch (error) { if (error.code === 'ENOENT') continue; throw error; }
+        if (!stat.isFile()) continue;
+        files.push({ name: entry.name, ext: path.extname(entry.name).toLowerCase(), fullPath, size: stat.size,
+            mtime: stat.mtime, signature: signature(stat) });
     }
-
-    // 最新与最早图片
-    const newestImage = imageFiles.length > 0 ? imageFiles.reduce((a, b) => (a.mtime > b.mtime ? a : b)) : null;
-    const oldestImage = imageFiles.length > 0 ? imageFiles.reduce((a, b) => (a.mtime < b.mtime ? a : b)) : null;
-
-    // 纯统计模式 (--stat)
-    if (options.statOnly) {
-        if (options.json) {
-            console.log(JSON.stringify({
-                uploadsDir,
-                totalFiles: totalFiles.length,
-                totalBytes: totalUploadsBytes,
-                imageCount: imageFiles.length,
-                imageBytes: totalImagesBytes,
-                extMap,
-                newestImage: newestImage ? { name: newestImage.name, mtime: newestImage.mtime } : null,
-                oldestImage: oldestImage ? { name: oldestImage.name, mtime: oldestImage.mtime } : null,
-                otherFiles: nonImageFiles.map(f => ({ name: f.name, size: f.size }))
-            }, null, 2));
-            return;
-        }
-
-        console.log('═'.repeat(60));
-        console.log('  图片统计：' + uploadsDir);
-        console.log('═'.repeat(60));
-        console.log(`图片数量：${imageFiles.length} 张`);
-        console.log(`图片占用：${formatSize(totalImagesBytes)}（${totalImagesBytes} 字节）`);
-        console.log('─'.repeat(60));
-        if (imageFiles.length > 0) {
-            console.log('按格式分布：');
-            const sortedExts = Object.entries(extMap).sort((a, b) => b[1].count - a[1].count);
-            for (const [ext, info] of sortedExts) {
-                console.log(`  ${ext.padEnd(10)} ${String(info.count).padStart(5)} 张   ${formatSize(info.size).padStart(10)}`);
-            }
-            console.log('─'.repeat(60));
-            console.log(`最新图片：${newestImage.name}（${formatDate(newestImage.mtime)}）`);
-            console.log(`最早图片：${oldestImage.name}（${formatDate(oldestImage.mtime)}）`);
-            console.log('─'.repeat(60));
-        }
-        if (nonImageFiles.length > 0) {
-            console.log(`其他文件：${nonImageFiles.length} 个，占 ${formatSize(nonImageBytes)}`);
-            for (const f of nonImageFiles) {
-                console.log(`  - ${f.name}（${formatSize(f.size)}）`);
-            }
-            console.log('─'.repeat(60));
-        }
-        console.log(`目录总占用：${formatSize(totalUploadsBytes)}（${totalUploadsBytes} 字节）`);
-        console.log('═'.repeat(60));
-        return;
-    }
-
-    // 2. 收集 backend/data 中所有的图片引用
-    const dataFiles = fs.readdirSync(dataDir).filter(f => f.endsWith('.json'));
-    const referencedImages = new Map();
-
-    function addReference(rawName, sourceFile) {
-        if (!rawName) return;
-        let cleanName = rawName.split('?')[0].split('#')[0];
-        try {
-            cleanName = decodeURIComponent(cleanName);
-        } catch (_) {}
-        cleanName = path.basename(cleanName).trim();
-        if (!cleanName) return;
-
-        const ext = path.extname(cleanName).toLowerCase();
-        if (!IMAGE_EXTS.has(ext)) return;
-
-        if (!referencedImages.has(cleanName)) {
-            referencedImages.set(cleanName, new Set());
-        }
-        referencedImages.get(cleanName).add(sourceFile);
-    }
-
-    for (const dataFile of dataFiles) {
-        const fullPath = path.join(dataDir, dataFile);
-        let content = '';
-        try {
-            content = fs.readFileSync(fullPath, 'utf8');
-        } catch (e) {
-            console.error(`警告：无法读取数据文件 ${dataFile}:`, e.message);
-            continue;
-        }
-
-        // 正则提取所有 /uploads/ 下的文件名
-        const uploadRegex = /(?:https?:\/\/[^\s"'`<>]+)?\/(?:api\/)?uploads\/([^"'`<>?#\s\\]+)/g;
-        let m;
-        while ((m = uploadRegex.exec(content)) !== null) {
-            addReference(m[1], dataFile);
-        }
-
-        // 兜底提取直接出现的带图片后缀的文件名
-        const extRegex = /\b([a-zA-Z0-9_.-]+\.(?:jpg|jpeg|png|webp|gif|bmp|heic|avif|svg))\b/gi;
-        while ((m = extRegex.exec(content)) !== null) {
-            addReference(m[1], dataFile);
-        }
-    }
-
-    // 3. 对比引用情况
-    const referencedFiles = [];
-    const deadFiles = [];
-    const protectedFiles = [];
-
-    let referencedBytes = 0;
-    let deadBytes = 0;
-    let protectedBytes = 0;
-
-    for (const fileInfo of imageFiles) {
-        if (referencedImages.has(fileInfo.name)) {
-            fileInfo.referencedBy = Array.from(referencedImages.get(fileInfo.name));
-            referencedFiles.push(fileInfo);
-            referencedBytes += fileInfo.size;
-        } else {
-            const ageMs = now - fileInfo.mtime.getTime();
-            if (!options.all && options.minAgeMs > 0 && ageMs < options.minAgeMs) {
-                fileInfo.ageMs = ageMs;
-                protectedFiles.push(fileInfo);
-                protectedBytes += fileInfo.size;
-            } else {
-                deadFiles.push(fileInfo);
-                deadBytes += fileInfo.size;
-            }
-        }
-    }
-
-    // 4. 检查是否有数据引用但物理文件丢失的情况
-    const missingFiles = [];
-    for (const [refName, sourceFiles] of referencedImages.entries()) {
-        const fullPath = path.join(uploadsDir, refName);
-        if (!fs.existsSync(fullPath)) {
-            missingFiles.push({
-                name: refName,
-                referencedBy: Array.from(sourceFiles)
-            });
-        }
-    }
-
-    // 5. 如果启用了 --clean，执行实际清理
-    let cleanedFiles = [];
-    let cleanedBytes = 0;
-    let backupPath = null;
-
-    if (options.clean && deadFiles.length > 0) {
-        if (options.backup) {
-            backupPath = options.backupDir
-                ? path.resolve(options.backupDir)
-                : path.join(backendDir, `uploads_backup_${Date.now()}`);
-            if (!fs.existsSync(backupPath)) {
-                fs.mkdirSync(backupPath, { recursive: true });
-            }
-        }
-
-        for (const file of deadFiles) {
-            try {
-                if (options.backup) {
-                    const dest = path.join(backupPath, file.name);
-                    fs.renameSync(file.fullPath, dest);
-                } else {
-                    fs.unlinkSync(file.fullPath);
-                }
-                cleanedFiles.push(file);
-                cleanedBytes += file.size;
-            } catch (err) {
-                console.error(`清理失败 [${file.name}]:`, err.message);
-            }
-        }
-    }
-
-    // 6. 输出报告
-    if (options.json) {
-        console.log(JSON.stringify({
-            mode: options.clean ? 'clean' : 'preview',
-            backup: options.backup ? backupPath : null,
-            totalFilesCount: totalFiles.length,
-            totalFilesSize: totalUploadsBytes,
-            imageCount: imageFiles.length,
-            imageBytes: totalImagesBytes,
-            referencedCount: referencedFiles.length,
-            referencedSize: referencedBytes,
-            deadCount: deadFiles.length,
-            deadSize: deadBytes,
-            protectedCount: protectedFiles.length,
-            protectedSize: protectedBytes,
-            nonImageCount: nonImageFiles.length,
-            nonImageSize: nonImageBytes,
-            missingCount: missingFiles.length,
-            cleanedCount: cleanedFiles.length,
-            cleanedSize: cleanedBytes,
-            extMap,
-            newestImage: newestImage ? { name: newestImage.name, mtime: newestImage.mtime } : null,
-            oldestImage: oldestImage ? { name: oldestImage.name, mtime: oldestImage.mtime } : null,
-            deadFiles: deadFiles.map(f => ({ name: f.name, size: f.size, mtime: f.mtime })),
-            missingFiles
-        }, null, 2));
-        return;
-    }
-
-    console.log('\n' + '═'.repeat(60));
-    console.log('       Uploads 图片引用检测与清理报告');
-    console.log('═'.repeat(60));
-    console.log(`扫描目录: uploads => ${uploadsDir}`);
-    console.log(`数据目录: data    => ${dataDir}`);
-    console.log(`数据源  : ${dataFiles.join(', ')}`);
-    console.log('─'.repeat(60));
-    console.log(`📁 目录总文件数  : ${totalFiles.length} 个  (${formatSize(totalUploadsBytes)})`);
-    console.log(`   ├─ 正式引用图片: ${referencedFiles.length} 个  (${formatSize(referencedBytes)})`);
-    console.log(`   ├─ 💀 死图片(未引用): ${deadFiles.length} 个  (${formatSize(deadBytes)})`);
-    if (protectedFiles.length > 0) {
-        console.log(`   ├─ ⏳ 保护中近期上传: ${protectedFiles.length} 个  (${formatSize(protectedBytes)}) [小于 ${(options.minAgeMs / 3600000).toFixed(1)} 小时]`);
-    }
-    if (nonImageFiles.length > 0) {
-        console.log(`   └─ 📄 非图片文件    : ${nonImageFiles.length} 个  (${formatSize(nonImageBytes)}) [跳过不清理]`);
-        for (const f of nonImageFiles) {
-            console.log(`        • ${f.name} (${formatSize(f.size)})`);
-        }
-    }
-    console.log('─'.repeat(60));
-
-    if (imageFiles.length > 0) {
-        console.log('📊 图片格式分布统计：');
-        const sortedExts = Object.entries(extMap).sort((a, b) => b[1].count - a[1].count);
-        for (const [ext, info] of sortedExts) {
-            console.log(`   ${ext.padEnd(8)} ${String(info.count).padStart(5)} 张   ${formatSize(info.size).padStart(10)}`);
-        }
-        if (newestImage && oldestImage) {
-            console.log(`   最新图片: ${newestImage.name} (${formatDate(newestImage.mtime)})`);
-            console.log(`   最早图片: ${oldestImage.name} (${formatDate(oldestImage.mtime)})`);
-        }
-        console.log('─'.repeat(60));
-    }
-
-    if (missingFiles.length > 0) {
-        console.log(`⚠️  发现 ${missingFiles.length} 个在 data 中引用但在 uploads 中缺失的图片:`);
-        for (const m of missingFiles.slice(0, 10)) {
-            console.log(`    - ${m.name} (来源: ${m.referencedBy.join(', ')})`);
-        }
-        if (missingFiles.length > 10) {
-            console.log(`    ... 其余 ${missingFiles.length - 10} 个省略`);
-        }
-        console.log('─'.repeat(60));
-    } else {
-        console.log('✅ 数据完整性校验通过：data 中引用的全部图片均存在于 uploads 中。');
-        console.log('─'.repeat(60));
-    }
-
-    if (options.clean) {
-        if (cleanedFiles.length > 0) {
-            if (options.backup) {
-                console.log(`🎉 清理完成！已将 ${cleanedFiles.length} 个死图片安全移动至备份目录:`);
-                console.log(`   📦 备份路径: ${backupPath}`);
-            } else {
-                console.log(`🎉 清理完成！已永久删除 ${cleanedFiles.length} 个死图片。`);
-            }
-            console.log(`   💾 本次释放磁盘空间: ${formatSize(cleanedBytes)}`);
-        } else {
-            console.log('✨ 没有需要清理的死图片。');
-        }
-    } else {
-        if (deadFiles.length > 0) {
-            console.log(`🔍 检测到 ${deadFiles.length} 个死图片，预计可释放空间: ${formatSize(deadBytes)}`);
-            const displayList = options.verbose ? deadFiles : deadFiles.slice(0, 10);
-            console.log(`\n📋 ${options.verbose ? '全部' : '部分'}死图片列表${options.verbose ? '' : '（展示前 10 个，加 --verbose 查看全部）'}:`);
-            for (const f of displayList) {
-                console.log(`   - ${f.name.padEnd(24)} ${formatSize(f.size).padStart(9)}   修改于: ${formatDate(f.mtime)}`);
-            }
-            if (!options.verbose && deadFiles.length > 10) {
-                console.log(`   ... 还有 ${deadFiles.length - 10} 个未展示`);
-            }
-            console.log('\n💡 提示：当前为【检测预览模式（Dry Run）】，没有文件被删除。');
-            console.log('   如需执行清理，可使用以下命令：');
-            console.log('   1. 备份后清理（推荐，安全可逆）：');
-            console.log('      node tools/clean-uploads.js --clean --backup');
-            console.log('   2. 直接删除死图片：');
-            console.log('      node tools/clean-uploads.js --clean');
-            console.log('   3. 清理全部（包含近期 1 小时内）：');
-            console.log('      node tools/clean-uploads.js --clean --all\n');
-        } else {
-            console.log('🎉 恭喜！uploads 文件夹非常干净，未发现任何死图片。');
-        }
-    }
-    console.log('═'.repeat(60) + '\n');
+    return files;
 }
 
-run();
+function dataStamp(directory) {
+    return fs.readdirSync(directory).filter(name => name.endsWith('.json')).sort().map(name => {
+        const stat = fs.lstatSync(path.join(directory, name));
+        if (!stat.isFile()) throw new Error(`数据文件必须是普通文件：${name}`);
+        return `${name}:${signature(stat)}`;
+    }).join('\n');
+}
+
+function readReferences(directory) {
+    const stamp = dataStamp(directory);
+    const names = fs.readdirSync(directory).filter(name => name.endsWith('.json')).sort();
+    for (const name of ['users.json', 'moments.json']) {
+        if (!names.includes(name)) throw new Error(`缺少 ${name}，停止引用检测和清理`);
+    }
+    const references = new Map();
+    function addReference(name, source) {
+        try { name = path.basename(decodeURIComponent(name.split(/[?#]/)[0])).trim(); } catch { return; }
+        if (!IMAGE_EXTS.has(path.extname(name).toLowerCase())) return;
+        if (!references.has(name)) references.set(name, new Set());
+        references.get(name).add(source);
+    }
+    for (const name of names) {
+        let data;
+        try {
+            data = JSON.parse(fs.readFileSync(path.join(directory, name), 'utf8').replace(/^\uFEFF/, ''));
+            if (['users.json', 'moments.json', 'posts.json', 'topics.json', 'notifications.json'].includes(name) && !Array.isArray(data)) throw new Error();
+        } catch { throw new Error(`数据文件 ${name} 无法读取或格式错误，停止清理`); }
+        // 先解析 JSON 再扫描，兼容 BOM、转义斜线及历史上的纯文件名引用。
+        const content = JSON.stringify(data);
+        for (const match of content.matchAll(/\/(?:api\/)?uploads\/([^"'`<>?#\s\\]+)/g)) addReference(match[1], name);
+        const bareContent = content.replace(/\/(?:api\/)?uploads\/[^"'`<>\s\\]+/g, '');
+        for (const match of bareContent.matchAll(/\b([a-zA-Z0-9_.-]+\.(?:jpe?g|png|webp|gif|bmp|heic|heif|avif|tiff?|svg))\b/gi)) addReference(match[1], name);
+    }
+    if (dataStamp(directory) !== stamp) throw new Error('引用数据正在变化，请稍后重新运行');
+    return { references, stamp };
+}
+
+function assertUnchanged(file) {
+    const stat = fs.lstatSync(file.fullPath);
+    if (!stat.isFile() || signature(stat) !== file.signature) throw new Error('文件在扫描后发生变化，跳过清理');
+}
+
+function run(options) {
+    if (options.help) return printHelp();
+    const uploadsDir = realLocation(options.uploadsDir);
+    const previewsDir = realLocation(options.previewsDir);
+    const dataDir = realLocation(options.dataDir);
+    requireSeparate(uploadsDir, previewsDir);
+    requireSeparate(uploadsDir, dataDir);
+    requireSeparate(previewsDir, dataDir);
+    const files = scan(uploadsDir);
+    const images = files.filter(file => IMAGE_EXTS.has(file.ext));
+    const otherFiles = files.filter(file => !IMAGE_EXTS.has(file.ext));
+    const allPreviewFiles = scan(previewsDir, true);
+    const previews = allPreviewFiles.filter(file => PREVIEW_NAME.test(file.name));
+    const extMap = {};
+    for (const file of images) {
+        extMap[file.ext] ||= { count: 0, size: 0 };
+        extMap[file.ext].count++;
+        extMap[file.ext].size += file.size;
+    }
+    const sortedImages = [...images].sort((a, b) => a.mtime - b.mtime);
+    const brief = file => file ? { name: file.name, mtime: file.mtime } : null;
+    const report = { mode: options.statOnly ? 'stat' : options.clean ? 'clean' : 'preview', uploadsDir, previewsDir,
+        totalFiles: files.length, totalBytes: bytes(files), totalFilesCount: files.length, totalFilesSize: bytes(files),
+        imageCount: images.length, imageBytes: bytes(images), extMap, otherFiles: otherFiles.map(file => ({ name: file.name, size: file.size })),
+        nonImageCount: otherFiles.length, nonImageSize: bytes(otherFiles), newestImage: brief(sortedImages.at(-1)), oldestImage: brief(sortedImages[0]),
+        previewCount: previews.filter(file => file.ext === '.webp').length, previewMetadataCount: previews.filter(file => file.ext === '.json').length,
+        previewFileCount: previews.length, previewBytes: bytes(previews), otherPreviewFileCount: allPreviewFiles.length - previews.length,
+        totalMediaBytes: bytes(files) + bytes(allPreviewFiles) };
+
+    if (!options.statOnly) {
+        const snapshot = readReferences(dataDir);
+        const now = Date.now();
+        const oldEnough = file => options.minAgeMs === 0 || now - file.mtime.getTime() >= options.minAgeMs;
+        const referenced = images.filter(file => snapshot.references.has(file.name));
+        const unused = images.filter(file => !snapshot.references.has(file.name));
+        const dead = unused.filter(oldEnough);
+        const protectedFiles = unused.filter(file => !oldEnough(file));
+        const deadNames = new Set(dead.map(file => file.name));
+        const owners = new Map(files.map(file => [imageId(file.name), file.name]));
+        // 原图丢失但仍被日记引用时，保留其预览，避免删掉最后一份图片。
+        for (const name of snapshot.references.keys()) owners.set(imageId(name), name);
+        const groups = new Map();
+        for (const file of previews) {
+            const [, id] = PREVIEW_NAME.exec(file.name);
+            if (!groups.has(id)) groups.set(id, []);
+            groups.get(id).push(file);
+        }
+        const previewCleanup = [];
+        let protectedPreviewFileCount = 0;
+        for (const [id, group] of groups) {
+            const owner = owners.get(id);
+            if (owner && !deadNames.has(owner)) continue;
+            if (!owner && group.some(file => !oldEnough(file))) {
+                protectedPreviewFileCount += group.length;
+                continue;
+            }
+            for (const file of group) previewCleanup.push({ ...file, id, owner, reason: owner ? 'dead-original' : 'orphan-preview' });
+        }
+        Object.assign(report, { referencedCount: referenced.length, referencedSize: bytes(referenced), deadCount: dead.length, deadSize: bytes(dead),
+            protectedCount: protectedFiles.length, protectedSize: bytes(protectedFiles), protectedPreviewFileCount,
+            previewCleanupFileCount: previewCleanup.length, previewCleanupBytes: bytes(previewCleanup),
+            orphanPreviewFileCount: previewCleanup.filter(file => !file.owner).length,
+            missingFiles: [...snapshot.references].filter(([name]) => !files.some(file => file.name === name)).map(([name, sources]) => ({ name, referencedBy: [...sources] })),
+            deadFiles: dead.map(file => ({ name: file.name, size: file.size, mtime: file.mtime })),
+            previewCleanupFiles: previewCleanup.map(file => ({ name: file.name, size: file.size, reason: file.reason })),
+            backup: null, cleanedCount: 0, cleanedSize: 0, cleanedPreviewFileCount: 0, cleanedPreviewSize: 0, errors: [] });
+        report.missingCount = report.missingFiles.length;
+
+        if (options.clean && (dead.length || previewCleanup.length)) {
+            const assertDataUnchanged = () => {
+                if (dataStamp(dataDir) !== snapshot.stamp) {
+                    const error = new Error('引用数据发生变化，已停止后续清理，请重新运行');
+                    error.code = 'DATA_CHANGED';
+                    throw error;
+                }
+            };
+            assertDataUnchanged();
+            if (options.backup) {
+                report.backup = realLocation(options.backupDir || path.join(backendDir, `uploads_backup_${Date.now()}_${crypto.randomUUID().slice(0, 8)}`));
+                for (const directory of [uploadsDir, previewsDir, dataDir]) requireSeparate(report.backup, directory);
+                fs.mkdirSync(report.backup, { recursive: true });
+            }
+            const cleanedOriginals = new Set();
+            for (const file of [...dead.map(file => ({ ...file, original: true })), ...previewCleanup]) {
+                try {
+                    assertDataUnchanged();
+                    const hasSource = () => file.owner ? fs.existsSync(path.join(uploadsDir, file.owner))
+                        : fs.readdirSync(uploadsDir).some(name => imageId(name) === file.id);
+                    if (!file.original && (file.owner && !cleanedOriginals.has(file.owner) || hasSource())) continue;
+                    assertUnchanged(file);
+                    if (report.backup) {
+                        const folder = path.join(report.backup, file.original ? 'uploads' : 'uploads_previews');
+                        fs.mkdirSync(folder, { recursive: true });
+                        if (fs.realpathSync(folder) !== folder) throw new Error('备份子目录不能是目录链接');
+                        // 不覆盖已有备份，并兼容备份目录位于其他磁盘的情况。
+                        fs.copyFileSync(file.fullPath, path.join(folder, file.name), fs.constants.COPYFILE_EXCL);
+                        assertDataUnchanged();
+                        assertUnchanged(file);
+                        if (!file.original && hasSource()) continue;
+                    }
+                    fs.unlinkSync(file.fullPath);
+                    if (file.original) {
+                        cleanedOriginals.add(file.name);
+                        report.cleanedCount++;
+                        report.cleanedSize += file.size;
+                    } else {
+                        report.cleanedPreviewFileCount++;
+                        report.cleanedPreviewSize += file.size;
+                    }
+                } catch (error) {
+                    report.errors.push({ name: file.name, error: error.message });
+                    process.exitCode = 1;
+                    if (error.code === 'DATA_CHANGED') break;
+                }
+            }
+        }
+        report.cleanedTotalSize = report.cleanedSize + report.cleanedPreviewSize;
+    }
+    if (options.json) return console.log(JSON.stringify(report, null, 2));
+    console.log(`原图目录：${uploadsDir}\n预览目录：${previewsDir}`);
+    console.log(`原图：${report.imageCount} 张，${formatSize(report.imageBytes)}；预览：${report.previewCount} 张及 ${report.previewMetadataCount} 份元数据，${formatSize(report.previewBytes)}`);
+    console.log(`总占用：${formatSize(report.totalMediaBytes)}`);
+    for (const [ext, info] of Object.entries(extMap)) console.log(`  ${ext}：${info.count} 张，${formatSize(info.size)}`);
+    if (options.statOnly) return;
+    console.log(`引用中：${report.referencedCount} 张；保护期内：${report.protectedCount} 张；缺失原图：${report.missingCount} 张`);
+    console.log(`待清理：${report.deadCount} 张未引用原图，${report.previewCleanupFileCount} 份预览/元数据（其中 ${report.orphanPreviewFileCount} 份无主），共 ${formatSize(report.deadSize + report.previewCleanupBytes)}`);
+    if (options.clean) {
+        console.log(`已清理：${report.cleanedCount} 张原图、${report.cleanedPreviewFileCount} 份预览/元数据，共 ${formatSize(report.cleanedTotalSize)}`);
+        if (report.backup) console.log(`备份目录：${report.backup}`);
+        for (const error of report.errors) console.error(`未完成 ${error.name}：${error.error}`);
+    } else {
+        const candidates = [...report.deadFiles, ...report.previewCleanupFiles];
+        for (const file of options.verbose ? candidates : candidates.slice(0, 10)) console.log(`  ${file.name}  ${formatSize(file.size)}`);
+        if (!options.verbose && candidates.length > 10) console.log('其余文件可加 --verbose 查看');
+        console.log('当前仅检测，没有删除文件；执行清理使用 --clean，需要备份时加 --backup。');
+    }
+}
+
+function formatSize(value) {
+    for (const [unit, divisor] of [['GB', 1024 ** 3], ['MB', 1024 ** 2], ['KB', 1024]]) {
+        if (value >= divisor) return `${(value / divisor).toFixed(2)} ${unit}`;
+    }
+    return `${value} B`;
+}
+
+try { run(parseArgs(process.argv.slice(2))); }
+catch (error) { console.error(`清理未执行或已停止：${error.message}`); process.exitCode = 1; }

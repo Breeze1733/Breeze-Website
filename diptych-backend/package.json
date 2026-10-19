@@ -4,7 +4,6 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node server.js",
     "check-uploads": "node tools/clean-uploads.js",
     "clean-uploads": "node tools/clean-uploads.js --clean --backup",
@@ -16,6 +15,7 @@
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^5.2.1",
-    "multer": "^2.1.1"
+    "multer": "^2.1.1",
+    "sharp": "0.35.5"
   }
 }

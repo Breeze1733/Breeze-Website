@@ -8,13 +8,13 @@ const { pipeline } = require('node:stream/promises');
 const multer = require('multer');
 
 const TASK_LIFETIME_MS = 12 * 60 * 60 * 1000;
-const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp']);
+const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.avif', '.gif', '.tif', '.tiff', '.bmp']);
 
 function requestError(status, message) {
     return Object.assign(new Error(message), { status });
 }
 
-function installUploadRoutes({ registerRoute, uploadsDir, chunksDir, ok, fail }) {
+function installUploadRoutes({ registerRoute, uploadsDir, chunksDir, ok, fail, onMerged }) {
     fs.mkdirSync(chunksDir, { recursive: true });
     const pendingTasks = new Map();
     const receiveChunk = multer({
@@ -87,13 +87,23 @@ function installUploadRoutes({ registerRoute, uploadsDir, chunksDir, ok, fail })
     }
 
     function completedUrl(record) {
-        if (!record.final_name || !/^[A-Za-z0-9_-]+\.(?:jpe?g|png|webp)$/i.test(record.final_name)) {
+        if (!record.final_name || !/^[A-Za-z0-9_-]+\.[A-Za-z0-9]+$/.test(record.final_name) ||
+            !IMAGE_EXTENSIONS.has(path.extname(record.final_name).toLowerCase())) {
             throw new Error('Invalid completed task filename');
         }
         if (!fs.existsSync(path.join(uploadsDir, record.final_name))) {
             throw requestError(410, '已上传图片已被删除，请重新上传');
         }
         return `https://breeze.qzz.io/api/uploads/${record.final_name}`;
+    }
+
+    function mergedResult(record) {
+        const url = completedUrl(record);
+        // Original publication is authoritative; preview generation is retriable.
+        Promise.resolve().then(() => onMerged?.(url)).catch(error => {
+            console.warn('无法安排图片预览任务:', error.message);
+        });
+        return { url };
     }
 
     async function removeChunkFiles(task) {
@@ -150,14 +160,14 @@ function installUploadRoutes({ registerRoute, uploadsDir, chunksDir, ok, fail })
             const record = readTask(task);
             if (!record) throw requestError(404, '分片任务不存在或已过期');
             requireCount(record, count);
-            if (record.state === 'completed') return { url: completedUrl(record) };
+            if (record.state === 'completed') return mergedResult(record);
 
             // A restart after publishing the file but before recording completion is recoverable.
             if (record.final_name && fs.existsSync(path.join(uploadsDir, record.final_name))) {
                 record.state = 'completed';
                 saveTask(task, record);
                 await removeChunkFiles(task);
-                return { url: completedUrl(record) };
+                return mergedResult(record);
             }
             for (let index = 0; index < count; index++) {
                 if (!fs.existsSync(path.join(task.dir, String(index)))) {
@@ -166,7 +176,8 @@ function installUploadRoutes({ registerRoute, uploadsDir, chunksDir, ok, fail })
             }
             if (!record.final_name) {
                 const rawExt = path.extname(typeof req.body.filename === 'string' ? req.body.filename : '').toLowerCase();
-                record.final_name = `${randomUUID()}${IMAGE_EXTENSIONS.has(rawExt) ? rawExt : '.jpg'}`;
+                if (!IMAGE_EXTENSIONS.has(rawExt)) throw requestError(400, '不支持的原图文件格式');
+                record.final_name = `${randomUUID()}${rawExt}`;
                 saveTask(task, record);
             }
             const finalPath = path.join(uploadsDir, record.final_name);
@@ -187,7 +198,7 @@ function installUploadRoutes({ registerRoute, uploadsDir, chunksDir, ok, fail })
             }
             // Retain the small completion record so a lost response or concurrent retry returns the same URL.
             await removeChunkFiles(task);
-            return { url: completedUrl(record) };
+            return mergedResult(record);
         });
     }));
 
