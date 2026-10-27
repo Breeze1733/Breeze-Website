@@ -77,8 +77,12 @@ function installUploadRoutes({ registerRoute, uploadsDir, chunksDir, ok, fail, o
         }
     }
 
-    function newTask(task, count) {
-        return { owner: task.owner, upload_id: task.uploadId, total_chunks: count, state: 'pending' };
+    function uploadFolder(value) {
+        return value === 'avatars' || value === 'wallpapers' ? value : 'photos';
+    }
+
+    function newTask(task, count, folder) {
+        return { owner: task.owner, upload_id: task.uploadId, total_chunks: count, state: 'pending', folder: uploadFolder(folder) };
     }
 
     function requireCount(record, count) {
@@ -100,7 +104,7 @@ function installUploadRoutes({ registerRoute, uploadsDir, chunksDir, ok, fail, o
     function mergedResult(record) {
         const url = completedUrl(record);
         // Original publication is authoritative; preview generation is retriable.
-        Promise.resolve().then(() => onMerged?.(url)).catch(error => {
+        Promise.resolve().then(() => onMerged?.(url, record.folder)).catch(error => {
             console.warn('无法安排图片预览任务:', error.message);
         });
         return { url };
@@ -133,7 +137,7 @@ function installUploadRoutes({ registerRoute, uploadsDir, chunksDir, ok, fail, o
                     throw requestError(400, 'chunk_index 格式无效');
                 }
                 return serialized(task, async () => {
-                    const record = readTask(task) || newTask(task, count);
+                    const record = readTask(task) || newTask(task, count, req.body?.folder);
                     requireCount(record, count);
                     if (record.state === 'completed') completedUrl(record);
                     else {
@@ -160,6 +164,10 @@ function installUploadRoutes({ registerRoute, uploadsDir, chunksDir, ok, fail, o
             const record = readTask(task);
             if (!record) throw requestError(404, '分片任务不存在或已过期');
             requireCount(record, count);
+            if (!record.folder) {
+                record.folder = uploadFolder(req.body?.folder);
+                saveTask(task, record);
+            }
             if (record.state === 'completed') return mergedResult(record);
 
             // A restart after publishing the file but before recording completion is recoverable.

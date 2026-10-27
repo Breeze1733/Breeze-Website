@@ -139,7 +139,7 @@ function installAuth({ app, registerRoute, authFile }) {
 
     // Match Express's case-insensitive route handling as well as the /api rewrite.
     app.use((req, res, next) => {
-        if (!/^\/(?:users|moments|topics|notifications|upload|uploads)(?:\/|$)/i.test(req.path)) return next();
+        if (!/^\/(?:users|moments|shared-moments|topics|notifications|upload|uploads)(?:\/|$)/i.test(req.path)) return next();
         res.vary('Authorization');
         res.set('Cache-Control', /^\/uploads(?:\/|$)/i.test(req.path) ? 'private, max-age=0, must-revalidate' : 'private, no-store');
         const match = /^Bearer ([A-Za-z0-9_.-]+)$/i.exec(req.headers.authorization || '');

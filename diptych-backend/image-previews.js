@@ -55,7 +55,7 @@ async function hasMotionVideo(filename, format) {
     return false;
 }
 
-function createImagePreviewStore({ originalsDir, previewsDir, concurrency = 2, logger = console }) {
+function createImagePreviewStore({ originalsDir, previewsDir, concurrency = 2, logger = console, isOriginalOnly = () => false }) {
     originalsDir = path.resolve(originalsDir);
     previewsDir = path.resolve(previewsDir);
     const relative = path.relative(originalsDir, previewsDir);
@@ -179,6 +179,17 @@ function createImagePreviewStore({ originalsDir, previewsDir, concurrency = 2, l
         res.set('Cache-Control', 'private, max-age=0, must-revalidate');
         try {
             const original = await source(name);
+            if (variant && variant !== 'original' && await isOriginalOnly(name)) {
+                res.set('Cache-Control', 'private, max-age=0, must-revalidate, no-transform');
+                res.set('X-Original-Size', String(original.stat.size));
+                res.set('X-Image-Original-Only', '1');
+                if (variant === 'info') return res.json({ ok: true, data: {
+                    original_bytes: original.stat.size, width: 0, height: 0, is_motion: false, original_only: true,
+                } });
+                // Older clients require this response label, but receive the original bytes.
+                res.set('X-Image-Variant', 'preview');
+                return res.sendFile(original.original, { dotfiles: 'allow' }, error => { if (error) next(error); });
+            }
             if (!variant || variant === 'original') {
                 res.set('Cache-Control', 'private, max-age=0, must-revalidate, no-transform');
                 res.set('X-Image-Variant', 'original');

@@ -6,6 +6,12 @@ const { DataStoreError, readJsonArray, writeJsonArray } = require('./json-store'
 const { installUploadRoutes } = require('./upload-routes');
 const { installAuth } = require('./auth');
 const { createImagePreviewStore, safeImageName, nameFromUrl } = require('./image-previews');
+const {
+    SharedMomentValidationError,
+    assertOnlyKeys,
+    validateAndBuildBlocks,
+    coreBlock
+} = require('./shared-moments');
 
 const app = express();
 const PORT = Number(process.env.PORT || 3000);
@@ -98,6 +104,16 @@ function makeMomentId() {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
+function isValidSharedDateStr(dateStr) {
+    if (typeof dateStr !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return false;
+    const parsed = new Date(`${dateStr}T00:00:00Z`);
+    return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === dateStr;
+}
+
+function makeSharedMomentId() {
+    return 's' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
+}
+
 function nowIsoUtc8() {
     const d = new Date(Date.now() + 8 * 60 * 60 * 1000);
     const pad = (n, len = 2) => String(n).padStart(len, '0');
@@ -126,6 +142,15 @@ function normalizeImageUrls(moment) {
     return [moment.self_image_url, moment.partner_image_url]
         .filter(u => typeof u === 'string' && u)
         .map(normalizeUploadUrl);
+}
+
+function isSharedMoment(moment) {
+    return Boolean(moment && typeof moment === 'object' && !Array.isArray(moment) &&
+        moment.type === 'shared');
+}
+
+function isStandardMoment(moment) {
+    return Boolean(moment && typeof moment === 'object' && !Array.isArray(moment) && !isSharedMoment(moment));
 }
 
 function normalizeMomentRecord(moment) {
@@ -185,7 +210,8 @@ function pushNotification(recipientId, notification) {
 
 function migrateMomentRecords() {
     const moments = readJsonArray(momentsFile);
-    const normalized = moments.map(normalizeMomentRecord);
+    // 统一文件中只迁移普通日记；共记文档的 blocks/revision 必须原样保留。
+    const normalized = moments.map(moment => isStandardMoment(moment) ? normalizeMomentRecord(moment) : moment);
     const changed = JSON.stringify(moments) !== JSON.stringify(normalized);
 
     if (changed) {
@@ -212,6 +238,66 @@ function normalizeUploadUrl(value) {
         return value.replace('/uploads/', '/api/uploads/');
     }
     return value;
+}
+
+function normalizeSharedImageUrl(value) {
+    const normalized = normalizeUploadUrl(value);
+    let url;
+    try {
+        url = new URL(normalized, 'https://breeze.qzz.io');
+    } catch {
+        throw new SharedMomentValidationError(400, 'image_url 必须是有效的本站上传图片地址');
+    }
+    if (!['https:', 'http:'].includes(url.protocol) || url.hostname !== 'breeze.qzz.io' || url.port ||
+        !/^\/(?:api\/)?uploads\/[^/]+$/i.test(url.pathname)) {
+        throw new SharedMomentValidationError(400, 'image_url 必须引用本站上传的图片');
+    }
+    let name;
+    try {
+        name = safeImageName(decodeURIComponent(url.pathname.replace(/^\/(?:api\/)?uploads\//i, '')));
+    } catch {
+        name = null;
+    }
+    if (!name) throw new SharedMomentValidationError(400, 'image_url 路径无效');
+    return normalized;
+}
+
+// 删除是异步 I/O，而日记提交在当前进程内同步校验并落盘。先登记删除中的
+// 文件，避免“引用检查通过 → 另一请求提交引用 → unlink 完成”留下断图。
+const deletingImageNames = new Set();
+
+function requireAvailableImages(res, imageUrls) {
+    for (const value of imageUrls) {
+        let url;
+        try { url = new URL(value, 'https://breeze.qzz.io'); } catch { continue; }
+        if (!['https:', 'http:'].includes(url.protocol) || url.hostname !== 'breeze.qzz.io' || url.port) continue;
+        const uploadPath = /^\/(?:api\/)?uploads(?:\/|$)/i;
+        // URL parsing normalizes dot segments; keep invalid upload paths subject to validation.
+        const rawPath = value.trim().replace(/^(?:https?:)?\/\/[^/?#]*/i, '');
+        if (!uploadPath.test(url.pathname) && !uploadPath.test(rawPath)) continue;
+        let name;
+        try { name = safeImageName(decodeURIComponent(url.pathname.replace(/^\/(?:api\/)?uploads\/?/i, ''))); } catch { /* Invalid escape. */ }
+        if (!name) {
+            fail(res, 400, '图片路径无效，请重新选择图片');
+            return false;
+        }
+        if (deletingImageNames.has(name)) {
+            fail(res, 409, '图片正在删除，请重新上传后再发布');
+            return false;
+        }
+        try {
+            const stat = fs.lstatSync(path.join(uploadsDir, name));
+            if (!stat.isFile() || stat.isSymbolicLink() || stat.size === 0) {
+                fail(res, 409, '图片已失效，请重新上传后再发布');
+                return false;
+            }
+        } catch (error) {
+            if (error.code !== 'ENOENT' && error.code !== 'ENOTDIR') throw error;
+            fail(res, 409, '图片已失效，请重新上传后再发布');
+            return false;
+        }
+    }
+    return true;
 }
 
 function normalizeMood(value) {
@@ -292,10 +378,15 @@ if (!fs.existsSync(uploadsDir)) {
 const chunksDir = path.resolve(process.env.CHUNKS_DIR || path.join(__dirname, 'chunks_temp'));
 // Keep existing originals and URLs in uploads/; derived files live outside it.
 const previewsDir = path.resolve(process.env.PREVIEWS_DIR || `${uploadsDir}_previews`);
-const imagePreviews = createImagePreviewStore({ originalsDir: uploadsDir, previewsDir });
-installUploadRoutes({ registerRoute, uploadsDir, chunksDir, ok, fail, onMerged(url) {
+function isProfileImage(name) {
+    return readJsonArray(usersFile).some(user =>
+        [user.avatar_url, user.wallpaper_diary_url, user.wallpaper_topic_url].some(value => nameFromUrl(value) === name));
+}
+const imagePreviews = createImagePreviewStore({ originalsDir: uploadsDir, previewsDir, isOriginalOnly: isProfileImage });
+installUploadRoutes({ registerRoute, uploadsDir, chunksDir, ok, fail, onMerged(url, folder) {
+    if (folder === 'avatars' || folder === 'wallpapers') return;
     const name = nameFromUrl(url);
-    if (name) imagePreviews.warm(name);
+    if (name && !isProfileImage(name)) imagePreviews.warm(name);
 } });
 
 // 删除图片
@@ -312,13 +403,298 @@ registerRoute('post', '/upload/delete', async (req, res, next) => {
     }
     const usedByProfile = readJsonArray(usersFile).some(user =>
         [user.avatar_url, user.wallpaper_diary_url, user.wallpaper_topic_url].some(value => imageName(value) === targetName));
-    const usedByDiary = readJsonArray(momentsFile).some(moment =>
-        normalizeImageUrls(moment).some(value => imageName(value) === targetName));
-    if (usedByProfile || usedByDiary) return fail(res, 409, '图片仍被日记或用户资料引用');
+    const usedByDiary = readJsonArray(momentsFile).some(moment => {
+        const urls = isSharedMoment(moment)
+            ? moment.blocks.filter(block => block?.type === 'image').map(block => block.image_url)
+            : normalizeImageUrls(moment);
+        return urls.some(value => imageName(value) === targetName);
+    });
+    if (usedByProfile || usedByDiary) {
+        return fail(res, 409, '图片仍被日记或用户资料引用');
+    }
+    if (deletingImageNames.has(targetName)) {
+        return fail(res, 409, '图片正在删除');
+    }
+    deletingImageNames.add(targetName);
     try {
         await imagePreviews.remove(targetName);
-    } catch (error) { return next(error); }
+    } catch (error) {
+        return next(error);
+    } finally {
+        deletingImageNames.delete(targetName);
+    }
     return ok(res);
+});
+
+function readSharedMomentDocuments() {
+    const documents = readJsonArray(momentsFile).filter(isSharedMoment);
+    const ids = new Set();
+    const dates = new Set();
+    for (const document of documents) {
+        const valid = document && typeof document === 'object' && !Array.isArray(document) &&
+            typeof document.id === 'string' && document.id &&
+            isValidSharedDateStr(document.date_str) &&
+            document.schema_version === 1 &&
+            Number.isSafeInteger(document.revision) && document.revision >= 0 &&
+            ['A', 'B'].includes(document.created_by) &&
+            Array.isArray(document.blocks) &&
+            typeof document.created_at === 'string' && Number.isFinite(Date.parse(document.created_at)) &&
+            typeof document.updated_at === 'string' && Number.isFinite(Date.parse(document.updated_at));
+        if (!valid || ids.has(document?.id) || dates.has(document?.date_str)) {
+            throw new DataStoreError(momentsFile, new Error('Invalid shared moment record'));
+        }
+        ids.add(document.id);
+        dates.add(document.date_str);
+    }
+    return documents;
+}
+
+function sharedDocumentBlockCores(document) {
+    return document.blocks.map(coreBlock);
+}
+
+function sendSharedValidationError(res, error) {
+    return res.status(error.status).json({
+        ok: false,
+        error: error.message,
+        code: error.code
+    });
+}
+
+// ─── 共记日记 API ───
+// 与普通日记统一存于 moments.json；旧 /moments 契约只读取 standard 记录。
+registerRoute('get', '/shared-moments', (req, res) => {
+    const dateStr = req.query.date_str;
+    if (!isValidSharedDateStr(dateStr)) {
+        return fail(res, 400, 'date_str 格式必须是有效的 YYYY-MM-DD 日期');
+    }
+    const document = readSharedMomentDocuments().find(item => item.date_str === dateStr) || null;
+    return ok(res, document);
+});
+
+// 返回共记日期；新客户端自行把这些日期合并为 A/B 双方标记，旧日历接口不变。
+registerRoute('get', '/shared-moments/dates', (_req, res) => {
+    const dates = readSharedMomentDocuments().map(item => item.date_str).sort();
+    return ok(res, dates);
+});
+
+// 共记搜索使用独立端点，响应分页形状与日记搜索一致，但 items 是完整 SharedMoment。
+registerRoute('get', '/shared-moments/search', (req, res) => {
+    const query = String(req.query.keyword || req.query.q || '').trim().toLowerCase();
+    if (!query) return fail(res, 400, '搜索关键词不能为空');
+    const limit = Math.max(1, Math.min(50, parseInt(req.query.limit, 10) || 10));
+    const documents = readSharedMomentDocuments().sort((a, b) => {
+        const dateCompare = b.date_str.localeCompare(a.date_str);
+        return dateCompare || String(b.updated_at).localeCompare(String(a.updated_at));
+    });
+    let index = 0;
+    if (req.query.cursor) {
+        const cursorIndex = documents.findIndex(item => item.id === String(req.query.cursor));
+        if (cursorIndex >= 0) index = cursorIndex + 1;
+    }
+    const items = [];
+    let lastScannedId = null;
+    while (index < documents.length && items.length < limit) {
+        const document = documents[index++];
+        lastScannedId = document.id;
+        const matched = document.blocks.some(block =>
+            block.type === 'text' && String(block.text || '').toLowerCase().includes(query));
+        if (matched) items.push(document);
+    }
+    const hasMore = index < documents.length;
+    return ok(res, {
+        items,
+        has_more: hasMore,
+        next_cursor: hasMore ? lastScannedId : null
+    });
+});
+
+function makeImportedSharedBlocks(records, actorId, actorBlocks, importStandard, now) {
+    const byAuthor = new Map();
+    for (const record of records.filter(isStandardMoment)) {
+        if (!['A', 'B'].includes(record.author_id)) continue;
+        byAuthor.set(record.author_id, normalizeMomentRecord(record));
+    }
+    const result = [];
+    for (const authorId of ['A', 'B']) {
+        if (authorId === actorId && actorBlocks.length) {
+            result.push(...actorBlocks);
+            continue;
+        }
+        if (!importStandard) continue;
+        const standard = byAuthor.get(authorId);
+        if (!standard) continue;
+        const createdAt = standard.created_at || now;
+        const updatedAt = standard.updated_at || createdAt;
+        if (String(standard.feeling || '').trim()) {
+            result.push({
+                id: `b_${makeMomentId()}`,
+                type: 'text',
+                author_id: authorId,
+                text: String(standard.feeling),
+                created_at: createdAt,
+                updated_at: updatedAt
+            });
+        }
+        for (const imageUrl of normalizeImageUrls(standard)) {
+            result.push({
+                id: `b_${makeMomentId()}`,
+                type: 'image',
+                author_id: authorId,
+                image_url: normalizeSharedImageUrl(imageUrl),
+                created_at: createdAt,
+                updated_at: updatedAt
+            });
+        }
+    }
+    return result;
+}
+
+// 第一次切换为共记模式时可原子带入当前编辑内容及当天旧双联；重复请求仍幂等。
+registerRoute('post', '/shared-moments', (req, res, next) => {
+    try {
+        const body = req.body || {};
+        assertOnlyKeys(body, new Set(['date_str', 'blocks', 'import_standard']), '请求体');
+        if (!Object.prototype.hasOwnProperty.call(body, 'date_str') || !isValidSharedDateStr(body.date_str)) {
+            return fail(res, 400, 'date_str 格式必须是有效的 YYYY-MM-DD 日期');
+        }
+        if (body.blocks !== undefined && !Array.isArray(body.blocks)) {
+            return fail(res, 400, 'blocks 必须是数组');
+        }
+        if (body.import_standard !== undefined && typeof body.import_standard !== 'boolean') {
+            return fail(res, 400, 'import_standard 必须是布尔值');
+        }
+        const sharedDocuments = readSharedMomentDocuments();
+        const records = readJsonArray(momentsFile);
+        const existing = sharedDocuments.find(item => item.date_str === body.date_str);
+        if (existing) return ok(res, existing);
+
+        const now = nowIsoUtc8();
+        const actorBlocks = validateAndBuildBlocks({
+            existingBlocks: [],
+            rawBlocks: body.blocks || [],
+            actorId: req.auth.user_id,
+            splitForeignText: undefined,
+            now,
+            normalizeImageUrl: normalizeSharedImageUrl
+        });
+        const standardsForDate = records.filter(item =>
+            isStandardMoment(item) && item.date_str === body.date_str);
+        const blocks = makeImportedSharedBlocks(
+            standardsForDate,
+            req.auth.user_id,
+            actorBlocks,
+            body.import_standard === true,
+            now
+        );
+        const imageUrls = blocks.filter(block => block.type === 'image').map(block => block.image_url);
+        if (!requireAvailableImages(res, imageUrls)) return;
+        const document = {
+            id: makeSharedMomentId(),
+            type: 'shared',
+            date_str: body.date_str,
+            schema_version: 1,
+            revision: 0,
+            blocks,
+            created_by: req.auth.user_id,
+            created_at: now,
+            updated_at: now
+        };
+        records.push(document);
+        writeJsonArray(momentsFile, records);
+
+        const partnerUid = getPartnerUid(req.auth.user_id);
+        pushNotification(partnerUid, {
+            id: makeMomentId(),
+            recipient_id: partnerUid,
+            type: 'moment',
+            title: `对方将 ${body.date_str} 切换为共记模式`,
+            content: '',
+            date_str: body.date_str,
+            shared_moment_id: document.id,
+            created_at: now
+        });
+        return ok(res, document);
+    } catch (error) {
+        if (error instanceof SharedMomentValidationError) return sendSharedValidationError(res, error);
+        return next(error);
+    }
+});
+
+registerRoute('get', '/shared-moments/:id', (req, res) => {
+    const document = readSharedMomentDocuments().find(item => item.id === req.params.id);
+    if (!document) return fail(res, 404, '共记日记不存在');
+    return ok(res, document);
+});
+
+registerRoute('put', '/shared-moments/:id', (req, res, next) => {
+    try {
+        const body = req.body || {};
+        assertOnlyKeys(body, new Set(['base_revision', 'blocks', 'split_foreign_text']), '请求体');
+        if (!Number.isSafeInteger(body.base_revision) || body.base_revision < 0) {
+            return fail(res, 400, 'base_revision 必须是非负整数');
+        }
+        if (!Object.prototype.hasOwnProperty.call(body, 'blocks')) {
+            return fail(res, 400, 'blocks 为必填字段');
+        }
+        readSharedMomentDocuments();
+        const records = readJsonArray(momentsFile);
+        const index = records.findIndex(item => isSharedMoment(item) && item.id === req.params.id);
+        if (index < 0) return fail(res, 404, '共记日记不存在');
+        const current = records[index];
+        if (body.base_revision !== current.revision) {
+            return res.status(409).json({
+                ok: false,
+                error: '共记日记已被对方更新，请基于最新内容再次编辑',
+                code: 'revision_conflict',
+                data: current
+            });
+        }
+
+        const now = nowIsoUtc8();
+        const blocks = validateAndBuildBlocks({
+            existingBlocks: current.blocks,
+            rawBlocks: body.blocks,
+            actorId: req.auth.user_id,
+            splitForeignText: body.split_foreign_text,
+            now,
+            normalizeImageUrl: normalizeSharedImageUrl
+        });
+        const imageUrls = blocks.filter(block => block.type === 'image').map(block => block.image_url);
+        if (!requireAvailableImages(res, imageUrls)) return;
+
+        if (JSON.stringify(blocks.map(coreBlock)) === JSON.stringify(sharedDocumentBlockCores(current))) {
+            return ok(res, current);
+        }
+        const nextDocument = {
+            ...current,
+            type: 'shared',
+            revision: current.revision + 1,
+            blocks,
+            updated_at: now
+        };
+        records[index] = nextDocument;
+        writeJsonArray(momentsFile, records);
+
+        const partnerUid = getPartnerUid(req.auth.user_id);
+        const preview = blocks
+            .filter(block => block.type === 'text' && block.author_id === req.auth.user_id)
+            .map(block => block.text).join(' ').trim().slice(0, 80);
+        pushNotification(partnerUid, {
+            id: makeMomentId(),
+            recipient_id: partnerUid,
+            type: 'moment',
+            title: `对方更新了 ${current.date_str} 的共记日记`,
+            content: preview,
+            date_str: current.date_str,
+            shared_moment_id: current.id,
+            created_at: now
+        });
+        return ok(res, nextDocument);
+    } catch (error) {
+        if (error instanceof SharedMomentValidationError) return sendSharedValidationError(res, error);
+        return next(error);
+    }
 });
 
 // 静态文件服务 —— 让 /uploads/xxx.jpg 能直接访问
@@ -443,7 +819,7 @@ registerRoute('get', '/moments', (req, res) => {
     }
 
     const moments = readJsonArray(momentsFile)
-        .filter(m => m.date_str === dateStr && uidList.includes(m.author_id))
+        .filter(m => isStandardMoment(m) && m.date_str === dateStr && uidList.includes(m.author_id))
         .sort((a, b) => String(a.author_id).localeCompare(String(b.author_id)));
 
     return ok(res, moments.map(normalizeMomentRecord));
@@ -481,7 +857,8 @@ registerRoute('post', '/moments', (req, res) => {
     // created_at / updated_at 由服务端生成，前端无需也不能传入。
 
     const moments = readJsonArray(momentsFile);
-    const duplicated = moments.some(m => m.date_str === dateStr && m.author_id === authorId);
+    const duplicated = moments.some(m =>
+        isStandardMoment(m) && m.date_str === dateStr && m.author_id === authorId);
     if (duplicated) {
         return fail(res, 409, '该用户在该日期已有动态');
     }
@@ -497,6 +874,7 @@ registerRoute('post', '/moments', (req, res) => {
         self_image_url: selfImageUrl,
         partner_image_url: partnerImageUrl
     });
+    if (!requireAvailableImages(res, imageUrls)) return;
 
     const now = nowIsoUtc8();
     const id = makeMomentId();
@@ -530,7 +908,8 @@ registerRoute('post', '/moments', (req, res) => {
 
 registerRoute('put', '/moments/:id', (req, res) => {
     const moments = readJsonArray(momentsFile);
-    const index = moments.findIndex(m => String(m.id) === String(req.params.id));
+    const index = moments.findIndex(m =>
+        isStandardMoment(m) && String(m.id) === String(req.params.id));
     if (index === -1) {
         return fail(res, 404, '动态不存在');
     }
@@ -580,11 +959,12 @@ registerRoute('put', '/moments/:id', (req, res) => {
 
     const conflict = moments.some((m, i) => {
         if (i === index) return false;
-        return m.date_str === next.date_str && m.author_id === next.author_id;
+        return isStandardMoment(m) && m.date_str === next.date_str && m.author_id === next.author_id;
     });
     if (conflict) {
         return fail(res, 409, '更新后与现有动态冲突（同用户同日期）');
     }
+    if (!requireAvailableImages(res, normalizeImageUrls(next))) return;
 
     next.updated_at = nowIsoUtc8();
     next.created_at = original.created_at ? toIsoUtc8(original.created_at) : nowIsoUtc8();
@@ -617,7 +997,7 @@ registerRoute('get', '/moments/search', (req, res) => {
     const limitNum = Math.max(1, Math.min(50, parseInt(limit, 10) || 10));
 
     // 获取所有日记并按时间从新到旧排序（从下往上）
-    const moments = readJsonArray(momentsFile);
+    const moments = readJsonArray(momentsFile).filter(isStandardMoment);
     const candidateMoments = uidList.length > 0
         ? moments.filter(m => uidList.includes(m.author_id))
         : moments;
@@ -679,6 +1059,7 @@ registerRoute('get', '/moments/calendar/dates', (req, res) => {
     const moments = readJsonArray(momentsFile);
     const datesByAuthor = {};
     for (const m of moments) {
+        if (!isStandardMoment(m)) continue;
         if (!m.author_id || !m.date_str) continue;
         if (!datesByAuthor[m.author_id]) {
             datesByAuthor[m.author_id] = new Set();
@@ -699,7 +1080,8 @@ registerRoute('get', '/moments/calendar/dates', (req, res) => {
 // 日记详情放在 search/calendar 等固定路径之后，避免动态 id 抢先匹配。
 registerRoute('get', '/moments/:id', (req, res) => {
     res.set('Cache-Control', 'no-store');
-    const moment = readJsonArray(momentsFile).find(m => String(m.id) === req.params.id);
+    const moment = readJsonArray(momentsFile).find(m =>
+        isStandardMoment(m) && String(m.id) === req.params.id);
     if (!moment) return fail(res, 404, '日记不存在');
     return ok(res, normalizeMomentRecord(moment));
 });
@@ -708,7 +1090,8 @@ registerRoute('get', '/moments/:id', (req, res) => {
 registerRoute('post', '/moments/:id/comments', (req, res) => {
     res.set('Cache-Control', 'no-store');
     const moments = readJsonArray(momentsFile);
-    const index = moments.findIndex(m => String(m.id) === req.params.id);
+    const index = moments.findIndex(m =>
+        isStandardMoment(m) && String(m.id) === req.params.id);
     if (index < 0) return fail(res, 404, '日记不存在');
     const body = req.body || {};
     if (typeof body.id !== 'string' || !/^[A-Za-z0-9_-]{1,128}$/.test(body.id)) {
@@ -755,7 +1138,8 @@ registerRoute('post', '/moments/:id/comments', (req, res) => {
 registerRoute('delete', '/moments/:id/comments/:commentId', (req, res) => {
     res.set('Cache-Control', 'no-store');
     const moments = readJsonArray(momentsFile);
-    const index = moments.findIndex(m => String(m.id) === req.params.id);
+    const index = moments.findIndex(m =>
+        isStandardMoment(m) && String(m.id) === req.params.id);
     if (index < 0) return fail(res, 404, '日记不存在');
     const moment = normalizeMomentRecord(moments[index]);
     const comment = moment.comments.find(c => String(c.id) === req.params.commentId);
@@ -965,7 +1349,8 @@ registerRoute('get', '/version/download', (req, res) => {
 app.use((err, req, res, _next) => {
     console.error('未捕获错误:', err);
     if (err instanceof DataStoreError) return fail(res, 503, err.message);
-    if (req.url.startsWith('/api/') || req.url.startsWith('/upload') || req.url.startsWith('/moments') || req.url.startsWith('/users')) {
+    if (req.url.startsWith('/api/') || req.url.startsWith('/upload') || req.url.startsWith('/moments') ||
+        req.url.startsWith('/shared-moments') || req.url.startsWith('/users')) {
         return res.status(500).json({ ok: false, error: '服务器内部错误: ' + (err.message || '未知错误') });
     }
     return res.status(500).send('Internal Server Error');

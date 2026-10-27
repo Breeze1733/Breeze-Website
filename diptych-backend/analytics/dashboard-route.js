@@ -22,7 +22,11 @@ function createStatsReader(momentsFile, { cacheMs = 0, now = Date.now } = {}) {
                 if (attempt < 2) { await new Promise(resolve => setTimeout(resolve, 25)); continue; }
                 throw new Error('INVALID_MOMENTS_JSON');
             }
-            const report = analyzeMoments(parsed, { now: time });
+            const standardMoments = Array.isArray(parsed)
+                ? parsed.filter(moment => !(moment && typeof moment === 'object' && !Array.isArray(moment) &&
+                    moment.type === 'shared'))
+                : parsed;
+            const report = analyzeMoments(standardMoments, { now: time });
             cached = report; cachedKey = key; cachedAt = time;
             return report;
         }
