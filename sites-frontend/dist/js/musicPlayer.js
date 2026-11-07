@@ -23,10 +23,10 @@ const DEFAULT_SONG_NAME = '陈奕迅 - 我们万岁';
 // 从服务器获取最新播放列表（重新扫描 audio 文件夹）
 async function fetchPlaylist() {
   try {
-    const res = await fetch('https://breeze.qzz.io/api/audio-list');
+    const res = await fetch('https://tools.breeze.qzz.io/audio-list');
     if (!res.ok) throw new Error('获取失败');
     const songs = await res.json();
-    return songs.map(song => ({ ...song, src: new URL(song.src, 'https://breeze.qzz.io/').href }));
+    return songs.map(song => ({ ...song, src: new URL(song.src, 'https://tools.breeze.qzz.io/').href }));
   } catch (e) {
     console.warn('获取播放列表失败，使用缓存列表', e);
     return null;

@@ -1,5 +1,5 @@
 // js/transfer.js
-const API_BASE = window.__TRANSFER_API_BASE__ || 'https://breeze.qzz.io/transfer-api';
+const API_BASE = window.__TRANSFER_API_BASE__ || 'https://tools.breeze.qzz.io';
 
 const fileInput = document.getElementById('file-input');
 const fileNameDisplay = document.getElementById('file-name-display');
