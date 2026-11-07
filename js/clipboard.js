@@ -1,5 +1,5 @@
 // js/clipboard.js
-const API_BASE = '/api';
+const API_BASE = 'https://tools.breeze.qzz.io';
 
 const clipInput = document.getElementById('clip-input');
 const pasteBtn = document.getElementById('paste-btn');
