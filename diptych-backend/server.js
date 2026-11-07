@@ -5,6 +5,7 @@ const path = require('path');
 const { DataStoreError, readJsonArray, writeJsonArray } = require('./json-store');
 const { installUploadRoutes } = require('./upload-routes');
 const { installAuth } = require('./auth');
+const { PUBLIC_BASE_URL, normalizeUploadUrl } = require('./public-url');
 const { createImagePreviewStore, safeImageName, nameFromUrl } = require('./image-previews');
 const {
     SharedMomentValidationError,
@@ -20,13 +21,7 @@ app.set('trust proxy', 'loopback');
 app.use(cors());
 app.use(express.json({ limit: '1gb' }));
 
-app.use((req, res, next) => {
-    if (/^\/api(?=\/|\?|$)/i.test(req.url)) {
-        req.url = req.url.slice(4);
-        if (!req.url.startsWith('/')) req.url = '/' + req.url;
-    }
-    next();
-});
+// Strict clean routes: no /api prefix compatibility
 
 function registerRoute(method, routePath, ...handlers) {
     app[method](routePath, ...handlers);
@@ -219,37 +214,15 @@ function migrateMomentRecords() {
     }
 }
 
-function normalizeUploadUrl(value) {
-    if (typeof value !== 'string' || !value) {
-        return value;
-    }
-    // 新规范：统一走 /api/uploads/ 路径
-    if (value.startsWith('https://breeze.qzz.io/api/uploads/')) {
-        return value;
-    }
-    // 旧格式兼容：/uploads/ → /api/uploads/
-    if (value.startsWith('https://breeze.qzz.io/uploads/')) {
-        return value.replace('https://breeze.qzz.io/uploads/', 'https://breeze.qzz.io/api/uploads/');
-    }
-    if (value.startsWith('/api/uploads/')) {
-        return value;
-    }
-    if (value.startsWith('/uploads/')) {
-        return value.replace('/uploads/', '/api/uploads/');
-    }
-    return value;
-}
-
 function normalizeSharedImageUrl(value) {
     const normalized = normalizeUploadUrl(value);
     let url;
     try {
-        url = new URL(normalized, 'https://breeze.qzz.io');
+        url = new URL(normalized, PUBLIC_BASE_URL);
     } catch {
         throw new SharedMomentValidationError(400, 'image_url 必须是有效的本站上传图片地址');
     }
-    if (!['https:', 'http:'].includes(url.protocol) || url.hostname !== 'breeze.qzz.io' || url.port ||
-        !/^\/(?:api\/)?uploads\/[^/]+$/i.test(url.pathname)) {
+    if (url.origin !== PUBLIC_BASE_URL || !/^\/uploads\/[^/]+$/i.test(url.pathname)) {
         throw new SharedMomentValidationError(400, 'image_url 必须引用本站上传的图片');
     }
     let name;
@@ -269,8 +242,8 @@ const deletingImageNames = new Set();
 function requireAvailableImages(res, imageUrls) {
     for (const value of imageUrls) {
         let url;
-        try { url = new URL(value, 'https://breeze.qzz.io'); } catch { continue; }
-        if (!['https:', 'http:'].includes(url.protocol) || url.hostname !== 'breeze.qzz.io' || url.port) continue;
+        try { url = new URL(normalizeUploadUrl(value), PUBLIC_BASE_URL); } catch { continue; }
+        if (url.origin !== PUBLIC_BASE_URL) continue;
         const uploadPath = /^\/(?:api\/)?uploads(?:\/|$)/i;
         // URL parsing normalizes dot segments; keep invalid upload paths subject to validation.
         const rawPath = value.trim().replace(/^(?:https?:)?\/\/[^/?#]*/i, '');
@@ -700,8 +673,8 @@ registerRoute('put', '/shared-moments/:id', (req, res, next) => {
 // 静态文件服务 —— 让 /uploads/xxx.jpg 能直接访问
 app.use('/uploads', imagePreviews.middleware);
 
-// 扫描 audio 文件夹返回音乐列表
-const audioDir = path.resolve(process.env.AUDIO_DIR || path.join(__dirname, '..', 'audio'));
+// 扫描 audio 文件夹返回音乐列表 (音乐文件保留在 Webroot 原地)
+const audioDir = path.resolve(process.env.AUDIO_DIR || '/home/he/tools-backend/audio');
 registerRoute('get', '/audio-list', (req, res) => {
     fs.readdir(audioDir, (err, files) => {
         if (err) return res.status(500).json({ error: '读取音频目录失败' });
@@ -759,7 +732,7 @@ registerRoute('put', '/users/:uid', (req, res) => {
         if (typeof updates.avatar_url !== 'string') {
             return fail(res, 400, 'avatar_url 必须是字符串');
         }
-        next.avatar_url = updates.avatar_url;
+        next.avatar_url = normalizeUploadUrl(updates.avatar_url);
     }
 
     // 壁纸字段：日记/话题各一条 URL + 透明度，以及共用的卡片不透明度
@@ -767,13 +740,13 @@ registerRoute('put', '/users/:uid', (req, res) => {
         if (typeof updates.wallpaper_diary_url !== 'string') {
             return fail(res, 400, 'wallpaper_diary_url 必须是字符串');
         }
-        next.wallpaper_diary_url = updates.wallpaper_diary_url;
+        next.wallpaper_diary_url = normalizeUploadUrl(updates.wallpaper_diary_url);
     }
     if (Object.prototype.hasOwnProperty.call(updates, 'wallpaper_topic_url')) {
         if (typeof updates.wallpaper_topic_url !== 'string') {
             return fail(res, 400, 'wallpaper_topic_url 必须是字符串');
         }
-        next.wallpaper_topic_url = updates.wallpaper_topic_url;
+        next.wallpaper_topic_url = normalizeUploadUrl(updates.wallpaper_topic_url);
     }
     if (Object.prototype.hasOwnProperty.call(updates, 'wallpaper_diary_opacity')) {
         const opacity = Number(updates.wallpaper_diary_opacity);
@@ -1328,7 +1301,7 @@ registerRoute('get', '/version/latest', (req, res) => {
     return ok(res, {
         version: ver.version,
         version_code: ver.version_code,
-        download_url: 'https://breeze.qzz.io/api/version/download',
+        download_url: `${PUBLIC_BASE_URL}/version/download`,
         release_notes: ver.release_notes || ''
     });
 });

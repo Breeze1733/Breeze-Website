@@ -87,7 +87,7 @@ function clipFromBody(body) {
 }
 
 function buildPublicUrl(filename) {
-    return `https://breeze.qzz.io/uploads/${encodeURIComponent(filename)}`;
+    return `https://tools.breeze.qzz.io/uploads/${encodeURIComponent(filename)}`;
 }
 
 function resolveUploadPath(inputUrl) {

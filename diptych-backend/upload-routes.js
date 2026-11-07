@@ -98,7 +98,7 @@ function installUploadRoutes({ registerRoute, uploadsDir, chunksDir, ok, fail, o
         if (!fs.existsSync(path.join(uploadsDir, record.final_name))) {
             throw requestError(410, '已上传图片已被删除，请重新上传');
         }
-        return `https://breeze.qzz.io/api/uploads/${record.final_name}`;
+        return `/uploads/${record.final_name}`;
     }
 
     function mergedResult(record) {

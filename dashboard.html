@@ -48,7 +48,7 @@
 <script>
 'use strict';
 // Endpoint is intentionally fixed and same-origin. No raw moments-file fallback.
-const CONFIG = { endpoint: '/api/dashboard/stats', names: { A: 'hyx', B: 'cyc' } };
+const CONFIG = { endpoint: 'https://diptych.breeze.qzz.io/dashboard/stats', names: { A: 'hyx', B: 'cyc' } };
 const state = { bundle: null, range: 'last30', year: null, source: null, busy: false };
 const $ = id => document.getElementById(id);
 const esc = v => String(v).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
