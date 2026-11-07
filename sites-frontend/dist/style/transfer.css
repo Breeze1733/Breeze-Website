@@ -1,0 +1,198 @@
+/* style/transfer.css */
+
+.transfer-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.transfer-box {
+  width: 100%;
+  max-width: 600px;
+  padding: 30px;
+  border-radius: 20px;
+  color: #fff;
+  backdrop-filter: blur(15px);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 30px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding-bottom: 15px;
+}
+
+.back-btn {
+  color: #ddd;
+  text-decoration: none;
+  font-size: 14px;
+  transition: 0.3s;
+}
+
+.back-btn:hover {
+  color: #fff;
+  text-decoration: underline;
+}
+
+/* 上传区域样式 */
+.upload-section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  margin-bottom: 40px;
+}
+
+.file-input-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+}
+
+.file-input {
+  display: none; /* 隐藏原生极丑的上传按钮 */
+}
+
+.file-label {
+  background: rgba(255, 255, 255, 0.2);
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: 0.3s;
+}
+
+.file-label:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.upload-btn {
+  background: rgba(0, 229, 255, 0.6);
+  color: #fff;
+  border: none;
+  padding: 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  transition: 0.3s;
+}
+
+.upload-btn:hover {
+  background: rgba(0, 229, 255, 0.8);
+}
+
+.upload-btn:disabled {
+  background: rgba(255, 255, 255, 0.2);
+  cursor: not-allowed;
+}
+
+.status-msg {
+  font-size: 14px;
+  height: 20px;
+}
+
+/* 进度条容器 */
+.progress-container {
+  margin-top: 15px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.progress-container.hidden {
+  display: none;
+}
+
+/* 进度条轨道 */
+.progress-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* 进度条本体 - 使用你常用的青色渐变 */
+.progress-bar {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #00e5ff, #0099ff);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.5);
+  transition: width 0.2s ease; /* 让进度条走得更平滑 */
+}
+
+#progress-text {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.8);
+  font-family: inherit;
+}
+
+/* 列表区域样式 */
+.list-section h3 {
+  margin-bottom: 15px;
+  font-size: 18px;
+}
+
+#file-list {
+  list-style: none;
+  padding: 0;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+#file-list li {
+  background: rgba(0, 0, 0, 0.2);
+  margin-bottom: 10px;
+  padding: 12px 15px;
+  border-radius: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+
+/* 新增的列表操作按钮样式 */
+.action-btns {
+  display: flex;
+  gap: 10px;
+}
+
+.btn {
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  cursor: pointer;
+  text-decoration: none;
+  border: none;
+  transition: 0.3s;
+  outline: none;
+  font-family: inherit;
+}
+
+/* 统一按钮的基础风格：透明毛玻璃底色 */
+.download-btn, .delete-btn {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* 统一鼠标悬浮时的风格：稍微提亮背景 */
+.download-btn:hover, .delete-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* 仅在文字颜色上做优雅的区分 */
+.download-btn {
+  color: #00e5ff; /* 青色，代表安全下载 */
+}
+
+.delete-btn {
+  color: #ff6b6b; /* 红色，代表危险操作，但不再刺眼 */
+}

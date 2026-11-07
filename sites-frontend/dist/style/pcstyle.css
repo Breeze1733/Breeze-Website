@@ -1,0 +1,35 @@
+/* pc端样式文件 */
+@media screen and (min-width: 900px) {
+
+  /* 右侧栏目出现 */
+  main section {
+    padding: 50px;
+  }
+
+  main section:last-child {
+    display: flex;
+  }
+
+  /* 链接小提示 */
+  .tip {
+    display: block;
+  }
+
+  /* pc端出现鼠标移动效果 */
+  .social:hover {
+    cursor: pointer;
+    border-radius: 6px;
+    backdrop-filter: blur(10px);
+    background-color: #00000040;
+  }
+
+  /* 作品列表文字复原 */
+  .netlink ul li span {
+    display: block;
+  }
+
+  /* 菜单隐藏 */
+  .menu {
+    display: none;
+  }
+}
